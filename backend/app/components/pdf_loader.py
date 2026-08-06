@@ -2,10 +2,10 @@ import os
 from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from app.common.logger import get_logger
-from app.common.custom_exception import CustomException
+from ..common.logger import get_logger
+from ..common.custom_exception import CustomException
 
-from app.config.config import DATA_PATH, CHUNK_SIZE, CHUNK_OVERLAP
+from ..config.config import DATA_PATH, CHUNK_SIZE, CHUNK_OVERLAP
 
 logger = get_logger(__name__)
 

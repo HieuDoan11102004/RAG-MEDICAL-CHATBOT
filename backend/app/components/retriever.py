@@ -2,11 +2,11 @@ from langchain_classic.chains import RetrievalQA
 from langchain_core.prompts import PromptTemplate
 
 
-from app.components.llm import load_llm
-from app.components.vector_store import load_vector_store
+from .llm import load_llm
+from .vector_store import load_vector_store
 
-from app.common.logger import get_logger
-from app.common.custom_exception import CustomException
+from ..common.logger import get_logger
+from ..common.custom_exception import CustomException
 import os
 
 logger = get_logger(__name__)

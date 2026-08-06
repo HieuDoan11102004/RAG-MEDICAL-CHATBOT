@@ -1,12 +1,12 @@
 from langchain_community.vectorstores import FAISS
 import os
 import time
-from app.components.embeddings import get_embedding_model
+from .embeddings import get_embedding_model
 
-from app.common.logger import get_logger
-from app.common.custom_exception import CustomException
+from ..common.logger import get_logger
+from ..common.custom_exception import CustomException
 
-from app.config.config import DB_FAISS_PATH, OPENAI_EMBEDDING_MODEL
+from ..config.config import DB_FAISS_PATH, OPENAI_EMBEDDING_MODEL
 
 logger = get_logger(__name__)
 

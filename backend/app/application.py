@@ -7,7 +7,7 @@ from collections.abc import Iterable
 
 from flask import Flask, jsonify, request
 
-from app.components.retriever import create_qa_chain
+from .components.retriever import create_qa_chain
 
 
 def _allowed_origins(raw_origins: str | None = None) -> frozenset[str]:

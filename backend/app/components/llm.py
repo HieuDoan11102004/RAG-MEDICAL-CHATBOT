@@ -1,9 +1,9 @@
 from langchain_openai import ChatOpenAI
 
-from app.config.config import OPENAI_MODEL, get_openai_api_key
+from ..config.config import OPENAI_MODEL, get_openai_api_key
 
-from app.common.logger import get_logger
-from app.common.custom_exception import CustomException
+from ..common.logger import get_logger
+from ..common.custom_exception import CustomException
 
 logger = get_logger(__name__)
 

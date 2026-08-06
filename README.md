@@ -40,7 +40,7 @@ uv run python -m app.application
 The API listens on <http://localhost:5000>. To rebuild the document index after updating PDFs, run this from `backend/`:
 
 ```bash
-uv run python app/components/data_loader.py
+uv run python -m app.components.data_loader
 ```
 
 Start the frontend in a second terminal:
