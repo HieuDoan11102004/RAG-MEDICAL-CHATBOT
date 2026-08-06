@@ -1,15 +1,6 @@
 import logging
-from datetime import datetime
-from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-LOGS_DIR = PROJECT_ROOT / "logs"
-LOGS_DIR.mkdir(exist_ok=True)
-
-LOG_FILE = LOGS_DIR / f"log_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
 
 logging.basicConfig(
-    filename=str(LOG_FILE),
     format="%(asctime)s - %(levelname)s - %(message)s",
     level=logging.INFO,
 )
