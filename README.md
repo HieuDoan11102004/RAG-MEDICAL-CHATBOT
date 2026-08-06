@@ -19,7 +19,7 @@ The workflow is:
 
 The repository includes `data/The_GALE_ENCYCLOPEDIA_of_MEDICINE_SECOND.pdf`, a 759-page medical reference PDF used as the initial knowledge source. Additional PDF documents can be placed in `data/`; the ingestion script processes every `*.pdf` file in that directory.
 
-The generated FAISS files in `vectorstore/db_faiss/` are derived data, not source documents. Rebuild the index after adding, removing, or changing PDFs, or after changing the embedding model. The dataset may contain material that is incomplete, dated, or unsuitable for an individual medical decision, so users should consult qualified healthcare professionals for medical guidance.
+The generated FAISS files in `vectorstore/db_faiss/` are derived data, not source documents. Rebuild the index after adding, removing, or changing PDFs, or after changing the chunk size, chunk overlap, or embedding model. The dataset may contain material that is incomplete, dated, or unsuitable for an individual medical decision, so users should consult qualified healthcare professionals for medical guidance.
 
 ## Requirements
 
@@ -27,15 +27,40 @@ The generated FAISS files in `vectorstore/db_faiss/` are derived data, not sourc
 - An OpenAI API key
 - [uv](https://docs.astral.sh/uv/) for dependency management
 
+## Configuration
+
+`config.yaml` in the repository root holds the non-secret application defaults:
+
+```yaml
+openai_model: gpt-4.1-mini
+openai_embedding_model: text-embedding-3-small
+db_faiss_path: vectorstore/db_faiss
+data_path: data
+chunk_size: 500
+chunk_overlap: 50
+```
+
+Only these six flat keys are supported. Do not place `OPENAI_API_KEY` or any other credential in `config.yaml`; set the API key in `.env` or the process environment instead.
+
+Each setting can be overridden for a deployment without editing `config.yaml`. Values are selected in this order: **process environment > `.env` > `config.yaml`**.
+
+| `config.yaml` key | Environment override |
+| --- | --- |
+| `openai_model` | `OPENAI_MODEL` |
+| `openai_embedding_model` | `OPENAI_EMBEDDING_MODEL` |
+| `db_faiss_path` | `DB_FAISS_PATH` |
+| `data_path` | `DATA_PATH` |
+| `chunk_size` | `CHUNK_SIZE` |
+| `chunk_overlap` | `CHUNK_OVERLAP` |
+
+Relative paths in either `config.yaml` or their environment overrides are resolved from the repository root, rather than from the directory where the command is run.
+
 ## Setup
 
 1. Create a `.env` file in the project root:
 
    ```env
    OPENAI_API_KEY=your_api_key
-   # Optional model overrides
-   OPENAI_MODEL=gpt-4.1-mini
-   OPENAI_EMBEDDING_MODEL=text-embedding-3-small
    ```
 
 2. Install the dependencies:
@@ -50,7 +75,7 @@ The generated FAISS files in `vectorstore/db_faiss/` are derived data, not sourc
    uv run app/components/data_loader.py
    ```
 
-   This creates or replaces the index under `vectorstore/db_faiss/`. Rebuild it whenever the PDFs or embedding model change.
+   This creates or replaces the index under `vectorstore/db_faiss/`. Rebuild it whenever the source PDFs, chunk size, chunk overlap, or embedding model change.
 
 4. Start the application:
 
@@ -85,6 +110,7 @@ app/
   application.py        Flask routes and chat UI
   components/           PDF ingestion, embeddings, FAISS, retrieval, and LLM setup
   config/               Runtime configuration
+config.yaml             Non-secret runtime defaults
 data/                   Source PDF documents
 vectorstore/db_faiss/   Generated FAISS index
 ```

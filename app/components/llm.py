@@ -1,8 +1,6 @@
-import os
-
 from langchain_openai import ChatOpenAI
 
-from app.config.config import OPENAI_MODEL
+from app.config.config import OPENAI_MODEL, get_openai_api_key
 
 from app.common.logger import get_logger
 from app.common.custom_exception import CustomException
@@ -12,7 +10,7 @@ logger = get_logger(__name__)
 
 def load_llm(model_name: str = OPENAI_MODEL, api_key: str | None = None):
     try:
-        openai_api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        openai_api_key = api_key or get_openai_api_key()
 
         if not openai_api_key:
             raise CustomException(

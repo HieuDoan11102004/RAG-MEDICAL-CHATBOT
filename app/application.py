@@ -5,13 +5,9 @@ import sys
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from dotenv import load_dotenv
 from flask import Flask, redirect, render_template, request, session, url_for
 
 from app.components.retriever import create_qa_chain
-
-load_dotenv()
-HF_TOKEN = os.environ.get("HF_TOKEN")
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
