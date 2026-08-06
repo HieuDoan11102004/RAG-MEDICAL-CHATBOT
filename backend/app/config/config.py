@@ -1,4 +1,4 @@
-"""Validated application configuration loaded from the repository root."""
+"""Validated application configuration loaded from the backend project root."""
 
 from __future__ import annotations
 

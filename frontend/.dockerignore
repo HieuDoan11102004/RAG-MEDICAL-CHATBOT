@@ -1,0 +1,28 @@
+# Secrets and local environment overrides
+.env
+.env.*
+!.env.example
+
+# Generated dependencies and build/test artifacts
+node_modules/
+dist/
+coverage/
+.vite/
+.cache/
+
+# Logs and temporary files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+tmp/
+temp/
+*.tmp
+
+# Local tooling and VCS metadata
+.git/
+.github/
+.idea/
+.vscode/
+.DS_Store

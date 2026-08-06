@@ -1,8 +1,7 @@
 [project]
 name = "rag-medical-chatbot"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "Backend JSON API for the medical RAG chatbot"
 requires-python = ">=3.12"
 dependencies = [
     "faiss-cpu>=1.13.2",

@@ -1,116 +1,121 @@
 # RAG Medical Chatbot
 
-A Flask web application that answers medical questions using retrieval-augmented generation (RAG). It retrieves relevant passages from locally indexed PDF documents with FAISS, then uses an OpenAI chat model to generate a short, context-grounded answer.
+A medical-reference chatbot built with retrieval-augmented generation (RAG). The React frontend provides the chat experience, while the Flask backend retrieves passages from locally indexed PDFs and uses OpenAI to produce concise, context-grounded answers.
 
-> This project is an informational assistant, not a replacement for advice from a qualified medical professional.
+> This is an informational assistant, not a substitute for advice from a qualified healthcare professional.
 
-## Project overview
+## Architecture
 
-The application provides a browser-based chat interface for questions about the medical reference material stored in this repository. Instead of asking a language model to answer from general knowledge alone, it first looks up the most relevant content from the local document index. That retrieved context is passed to the model with instructions to give a concise answer based only on the supplied material.
+The applications are intentionally independent:
 
-The workflow is:
+- `frontend/` is a Vite, React, and TypeScript single-page application. It keeps the active conversation for the current browser session and calls the backend JSON API.
+- `backend/` is a Flask JSON API containing the RAG pipeline, configuration, source PDFs, and FAISS vector index. It does not serve the React application.
 
-1. Ingest the PDF documents in `data/`.
-2. Split their text into overlapping chunks and create OpenAI embeddings.
-3. Store the embeddings in a local FAISS vector index.
-4. Retrieve the closest chunk for each question and generate a response from it.
+The RAG flow is: PDF documents are split into overlapping chunks, OpenAI embeddings are stored in a FAISS index, and each prompt retrieves relevant context before the configured chat model answers.
 
 ## Data
 
-The repository includes `data/The_GALE_ENCYCLOPEDIA_of_MEDICINE_SECOND.pdf`, a 759-page medical reference PDF used as the initial knowledge source. Additional PDF documents can be placed in `data/`; the ingestion script processes every `*.pdf` file in that directory.
+`backend/data/The_GALE_ENCYCLOPEDIA_of_MEDICINE_SECOND.pdf` is the initial 759-page medical reference source. Place additional PDFs in `backend/data/`, then rebuild the index. `backend/vectorstore/db_faiss/` contains derived FAISS data and must be regenerated after changing PDFs, chunking settings, or the embedding model.
 
-The generated FAISS files in `vectorstore/db_faiss/` are derived data, not source documents. Rebuild the index after adding, removing, or changing PDFs, or after changing the chunk size, chunk overlap, or embedding model. The dataset may contain material that is incomplete, dated, or unsuitable for an individual medical decision, so users should consult qualified healthcare professionals for medical guidance.
+Reference material can be incomplete or outdated and must not be used as the sole basis for individual medical decisions.
 
-## Requirements
+## Run locally
 
-- Python 3.12 or newer
-- An OpenAI API key
-- [uv](https://docs.astral.sh/uv/) for dependency management
+Requirements: Python 3.12+, [uv](https://docs.astral.sh/uv/), Node.js 22+, npm, and an OpenAI API key.
+
+Create `backend/.env` with your secret (do not commit it):
+
+```env
+OPENAI_API_KEY=your_api_key
+```
+
+Start the backend in one terminal:
+
+```bash
+cd backend
+uv sync
+uv run python -m app.application
+```
+
+The API listens on <http://localhost:5000>. To rebuild the document index after updating PDFs, run this from `backend/`:
+
+```bash
+uv run python app/components/data_loader.py
+```
+
+Start the frontend in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open the Vite URL shown in the terminal (normally <http://localhost:5173>). During local development, Vite proxies `/api` requests to the backend.
 
 ## Configuration
 
-`config.yaml` in the repository root holds the non-secret application defaults:
+`backend/config.yaml` contains the six non-secret RAG defaults: `openai_model`, `openai_embedding_model`, `db_faiss_path`, `data_path`, `chunk_size`, and `chunk_overlap`. Settings are selected in this order: process environment, `backend/.env`, then YAML. Relative paths resolve from `backend/`.
 
-```yaml
-openai_model: gpt-4.1-mini
-openai_embedding_model: text-embedding-3-small
-db_faiss_path: vectorstore/db_faiss
-data_path: data
-chunk_size: 500
-chunk_overlap: 50
+The frontend uses `VITE_API_BASE_URL` to select its API origin. Leave it unset for the local Vite proxy; set it to the deployed backend URL when frontend and API are served from different origins:
+
+```env
+VITE_API_BASE_URL=https://api.example.com
 ```
 
-Only these six flat keys are supported. Do not place `OPENAI_API_KEY` or any other credential in `config.yaml`; set the API key in `.env` or the process environment instead.
+For a cross-origin deployment, set the backend process environment's comma-separated `CORS_ALLOWED_ORIGINS` allowlist to the exact frontend origins (it is intentionally separate from `backend/.env`):
 
-Each setting can be overridden for a deployment without editing `config.yaml`. Values are selected in this order: **process environment > `.env` > `config.yaml`**.
+```env
+CORS_ALLOWED_ORIGINS=https://chat.example.com,http://localhost:5173
+```
 
-| `config.yaml` key | Environment override |
-| --- | --- |
-| `openai_model` | `OPENAI_MODEL` |
-| `openai_embedding_model` | `OPENAI_EMBEDDING_MODEL` |
-| `db_faiss_path` | `DB_FAISS_PATH` |
-| `data_path` | `DATA_PATH` |
-| `chunk_size` | `CHUNK_SIZE` |
-| `chunk_overlap` | `CHUNK_OVERLAP` |
+## API
 
-Relative paths in either `config.yaml` or their environment overrides are resolved from the repository root, rather than from the directory where the command is run.
+| Endpoint | Request | Success response |
+| --- | --- | --- |
+| `GET /api/health` | None | `{ "status": "ok" }` |
+| `POST /api/chat` | `{ "prompt": "medical question" }` | `{ "answer": "..." }` |
 
-## Setup
-
-1. Create a `.env` file in the project root:
-
-   ```env
-   OPENAI_API_KEY=your_api_key
-   ```
-
-2. Install the dependencies:
-
-   ```bash
-   uv sync
-   ```
-
-3. Add one or more PDF files to `data/`, then build the FAISS vector store:
-
-   ```bash
-   uv run app/components/data_loader.py
-   ```
-
-   This creates or replaces the index under `vectorstore/db_faiss/`. Rebuild it whenever the source PDFs, chunk size, chunk overlap, or embedding model change.
-
-4. Start the application:
-
-   ```bash
-   uv run app/application.py
-   ```
-
-   Open <http://localhost:5000> in a browser.
+`POST /api/chat` returns `400` with `{ "error": "..." }` for blank or invalid prompts and `500` with the same error shape when the RAG pipeline cannot complete a request. The browser retains chat history for its current session; the API is stateless.
 
 ## Docker
 
-Build and run the container after adding `.env` and building the vector store:
+Build each application from its own directory context:
 
 ```bash
-docker build -t rag-medical-chatbot .
-docker run --rm -p 5000:5000 --env-file .env rag-medical-chatbot
+docker build -t rag-medical-backend ./backend
+docker build --build-arg VITE_API_BASE_URL=https://api.example.com -t rag-medical-frontend ./frontend
 ```
 
-## How it works
+Run the backend with its API key and a production CORS allowlist:
 
-1. PDF files in `data/` are split into overlapping text chunks.
-2. OpenAI embeddings are stored in a local FAISS index.
-3. Each question retrieves the closest matching chunk.
-4. The configured OpenAI chat model answers from that retrieved context.
+```bash
+docker run --rm -p 5000:5000 \
+  --env-file backend/.env \
+  -e CORS_ALLOWED_ORIGINS=https://chat.example.com \
+  rag-medical-backend
+```
 
-The default retrieval count is one chunk and responses are instructed to stay within two or three lines.
+The frontend image serves the built static site on port 80:
+
+```bash
+docker run --rm -p 8080:80 rag-medical-frontend
+```
+
+`VITE_API_BASE_URL` is compiled into the frontend at build time, so rebuild the frontend image when the API URL changes.
 
 ## Project layout
 
 ```text
-app/
-  application.py        Flask routes and chat UI
-  components/           PDF ingestion, embeddings, FAISS, retrieval, and LLM setup
-  config/               Runtime configuration
-config.yaml             Non-secret runtime defaults
-data/                   Source PDF documents
-vectorstore/db_faiss/   Generated FAISS index
+backend/
+  app/                    Flask API and RAG pipeline
+  config.yaml             Non-secret backend defaults
+  data/                   Source PDF documents
+  vectorstore/db_faiss/   Derived FAISS index
+  tests/                  Backend tests
+  Dockerfile              Backend image
+frontend/
+  src/                    React UI, components, and API client
+  Dockerfile              Static frontend image
+README.md                 Project documentation
 ```

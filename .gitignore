@@ -1,6 +1,22 @@
-venv/
-.idea/
-__pycache__/
-logs/
+# Environment and local tooling
 .env
 .omx/
+.idea/
+venv/
+.venv/
+backend/.venv/
+
+# Python caches, logs, and test artifacts
+__pycache__/
+*.py[cod]
+*.log
+logs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/

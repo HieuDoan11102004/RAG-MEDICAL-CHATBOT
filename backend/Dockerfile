@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_PROJECT_ENVIRONMENT=/app/.venv
 
-## Work directory inside the docker container
+## Work directory inside the backend container
 WORKDIR /app
 
 ## Installing system dependencies
@@ -34,6 +34,5 @@ RUN uv sync --frozen --no-dev
 ## Expose only flask port
 EXPOSE 5000
 
-## Run the Flask app
-CMD ["uv", "run", "app/application.py"]
-
+## Run the Flask JSON API
+CMD ["uv", "run", "python", "-m", "app.application"]
