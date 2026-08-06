@@ -11,7 +11,7 @@ The applications are intentionally independent:
 - `frontend/` is a Vite, React, and TypeScript single-page application. It keeps the active conversation for the current browser session and calls the backend JSON API.
 - `backend/` is a Flask JSON API containing the RAG pipeline, configuration, source PDFs, and FAISS vector index. It does not serve the React application.
 
-The RAG flow is: PDF documents are split into overlapping chunks, OpenAI embeddings are stored in a FAISS index, and each prompt retrieves relevant context before the configured chat model answers.
+The RAG flow is: PDF documents are split into overlapping chunks, OpenAI embeddings are stored in a FAISS index, and each prompt retrieves four relevant passages before the configured chat model returns an answer cited to those passages. Citations use the data-source name and its page number, never the source path or URL.
 
 ## Data
 
@@ -74,9 +74,9 @@ CORS_ALLOWED_ORIGINS=https://chat.example.com,http://localhost:5173
 | Endpoint | Request | Success response |
 | --- | --- | --- |
 | `GET /api/health` | None | `{ "status": "ok" }` |
-| `POST /api/chat` | `{ "prompt": "medical question" }` | `{ "answer": "..." }` |
+| `POST /api/chat` | `{ "prompt": "medical question" }` | `{ "answer": "...", "citations": [{ "id": "source-1", "title": "...", "page": 12 }] }` |
 
-`POST /api/chat` returns `400` with `{ "error": "..." }` for blank or invalid prompts and `500` with the same error shape when the RAG pipeline cannot complete a request. The browser retains chat history for its current session; the API is stateless.
+`POST /api/chat` returns `400` with `{ "error": "..." }` for blank or invalid prompts and `500` with the same error shape when the RAG pipeline cannot complete a request. A claim is returned only when it has at least one citation to a retrieved passage; otherwise the assistant abstains. The top-level `citations` array is deduplicated and rendered once after the answer. The browser retains chat history for its current session; the API is stateless.
 
 ## Docker
 

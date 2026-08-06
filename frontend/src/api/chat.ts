@@ -1,5 +1,12 @@
+export interface Citation {
+  id: string;
+  title: string;
+  page: number | null;
+}
+
 export interface ChatResponse {
   answer: string;
+  citations: Citation[];
 }
 
 export class ChatApiError extends Error {}

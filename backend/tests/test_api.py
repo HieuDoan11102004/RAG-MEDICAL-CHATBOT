@@ -19,15 +19,18 @@ class ChatApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json(), {"status": "ok"})
 
-    @patch("app.application.create_qa_chain")
+    @patch("app.application.answer_question")
     def test_chat_returns_rag_answer(self, create_chain) -> None:
-        create_chain.return_value.invoke.return_value = {"result": "Stay hydrated."}
+        create_chain.return_value = {
+            "answer": "Stay hydrated.",
+            "citations": [{"id": "source-1", "title": "Gale", "page": 4}],
+        }
 
         response = self.client.post("/api/chat", json={"prompt": "How do I recover?"})
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json(), {"answer": "Stay hydrated."})
-        create_chain.return_value.invoke.assert_called_once_with({"query": "How do I recover?"})
+        self.assertEqual(response.get_json(), create_chain.return_value)
+        create_chain.assert_called_once_with("How do I recover?")
 
     def test_chat_rejects_blank_or_non_json_prompt(self) -> None:
         for payload in ({}, {"prompt": "   "}, {"prompt": 4}):
@@ -41,7 +44,7 @@ class ChatApiTests(unittest.TestCase):
         response = self.client.post("/api/chat", data="not-json", content_type="text/plain")
         self.assertEqual(response.status_code, 400)
 
-    @patch("app.application.create_qa_chain", side_effect=RuntimeError("service unavailable"))
+    @patch("app.application.answer_question", side_effect=RuntimeError("service unavailable"))
     def test_chat_hides_rag_failure_details(self, _create_chain) -> None:
         response = self.client.post("/api/chat", json={"prompt": "Question"})
 

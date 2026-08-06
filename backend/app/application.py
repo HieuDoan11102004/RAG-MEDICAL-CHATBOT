@@ -7,7 +7,7 @@ from collections.abc import Iterable
 
 from flask import Flask, jsonify, request
 
-from .components.retriever import create_qa_chain
+from .components.retriever import answer_question
 
 
 def _allowed_origins(raw_origins: str | None = None) -> frozenset[str]:
@@ -46,11 +46,17 @@ def create_app(*, allowed_origins: Iterable[str] | None = None) -> Flask:
             return jsonify({"error": "prompt must be a non-blank string."}), 400
 
         try:
-            response = create_qa_chain().invoke({"query": prompt.strip()})
-            answer = response.get("result") if isinstance(response, dict) else None
+            response = answer_question(prompt.strip())
+            answer = response.get("answer") if isinstance(response, dict) else None
             if not isinstance(answer, str) or not answer.strip():
                 answer = "Sorry, I couldn't find an answer."
-            return jsonify({"answer": answer})
+            citations = response.get("citations") if isinstance(response, dict) else []
+            return jsonify(
+                {
+                    "answer": answer,
+                    "citations": citations if isinstance(citations, list) else [],
+                }
+            )
         except Exception:
             app.logger.exception("Unable to process chat request")
             return jsonify({"error": "Unable to process your request."}), 500

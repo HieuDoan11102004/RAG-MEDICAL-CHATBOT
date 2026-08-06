@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { sendPrompt } from "./api/chat";
+import { sendPrompt, type Citation } from "./api/chat";
 import { Composer } from "./components/Composer";
 import { Icon } from "./components/Icon";
 import { MessageList, type Message } from "./components/MessageList";
@@ -8,7 +8,7 @@ import "./styles.css";
 
 let nextMessageId = 0;
 const sessionStorageKey = "medchat.messages";
-const createMessage = (role: Message["role"], content: string): Message => ({ id: `message-${Date.now()}-${++nextMessageId}`, role, content });
+const createMessage = (role: Message["role"], content: string, citations?: Citation[]): Message => ({ id: `message-${Date.now()}-${++nextMessageId}`, role, content, citations });
 
 function loadMessages(): Message[] {
   try {
@@ -19,6 +19,7 @@ function loadMessages(): Message[] {
       typeof message === "object" && message !== null &&
       typeof message.id === "string" &&
       typeof message.content === "string" &&
+      (message.citations === undefined || Array.isArray(message.citations)) &&
       ["user", "assistant", "error"].includes(message.role as string),
     );
   } catch {
@@ -40,9 +41,9 @@ export default function App() {
     setMessages((current) => [...current, createMessage("user", prompt)]);
     setIsSending(true);
     try {
-      const { answer } = await sendPrompt(prompt);
+      const { answer, citations } = await sendPrompt(prompt);
       if (conversationId.current === requestConversationId) {
-        setMessages((current) => [...current, createMessage("assistant", answer)]);
+        setMessages((current) => [...current, createMessage("assistant", answer, citations)]);
       }
     } catch (error) {
       const content = error instanceof Error ? error.message : "Unable to reach the medical assistant.";

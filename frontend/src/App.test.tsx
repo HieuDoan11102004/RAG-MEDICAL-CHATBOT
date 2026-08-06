@@ -16,12 +16,13 @@ describe("App", () => {
   });
 
   it("shows sent and returned messages, then clears them with New chat", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ answer: "A balanced diet can help." }), { status: 200 }));
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ answer: "A balanced diet can help.", citations: [{ id: "source-1", title: "The Gale Encyclopedia Of Medicine Second", page: 14 }] }), { status: 200 }));
     const user = userEvent.setup();
     render(<App />);
     await user.type(screen.getByLabelText("Ask a medical question"), "How can I eat well?");
     await user.click(screen.getByRole("button", { name: "Send message" }));
     expect(await screen.findByText("A balanced diet can help.")).toBeInTheDocument();
+    expect(screen.getByText("The Gale Encyclopedia Of Medicine Second · p. 14")).toBeInTheDocument();
     expect(screen.getByText("How can I eat well?")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /new chat/i }));
     expect(screen.getByText("How can I help you today?")).toBeInTheDocument();
