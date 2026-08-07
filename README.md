@@ -95,13 +95,13 @@ CORS_ALLOWED_ORIGINS=https://chat.example.com,http://localhost:5173
 
 `POST /api/chat` returns `400` with `{ "error": "..." }` for blank or invalid prompts and `500` with the same error shape when the RAG pipeline cannot complete a request. A claim is returned only when it has at least one citation to a retrieved passage; otherwise the assistant abstains. The top-level `citations` array is deduplicated and rendered once after the answer. The browser retains chat history for its current session; the API is stateless.
 
-`POST /api/messages` is the versioned multi-agent entry point. In this initial text-only phase it validates prompts up to 4,000 characters, routes explicit emergency signals to an immediate-care message before retrieval, and otherwise delegates to the citation-grounded RAG agent. It also accepts optional `conversation_id`, `user_id`, and `email` fields; invalid email addresses are rejected. `/api/chat` remains compatible with the original response shape.
+`POST /api/messages` is the versioned multi-agent entry point. In this initial text-only phase it validates prompts up to 4,000 characters, uses the structured LLM router to select immediate-care escalation when appropriate, and otherwise delegates to the citation-grounded RAG agent. It also accepts optional `conversation_id`, `user_id`, and `email` fields; invalid email addresses are rejected. `/api/chat` remains compatible with the original response shape.
 
 ### Multi-agent state
 
 The orchestrator runs a LangGraph hierarchy with a shared `AgenticState`. It merges conversation messages by ID, maintains a `dialog_state` stack (`primary_assistant` → child agent → pop), and stores a separate latest execution status for each agent in `agent_states`. The current RAG agent is implemented; OCR and NER are reserved as future child-agent entries in the same state contract.
 
-Simple greetings, farewells, and capability questions take the `direct_response` route and bypass retrieval. Explicit urgent signals take the safety route; other messages take the citation-grounded RAG route.
+Simple greetings, farewells, and capability questions take the `direct_response` route and bypass retrieval. The structured LLM router can select the immediate-care safety route; other medical-information requests take the citation-grounded RAG route.
 
 Every implemented agent owns its prompt in its package: `agents/orchestrator/prompt.py` and `agents/rag_agent/prompt.py`. The RAG agent's retrieval component imports its prompt from that agent package rather than owning prompt text itself.
 

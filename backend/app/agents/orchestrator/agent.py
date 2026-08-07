@@ -10,10 +10,10 @@ from langgraph.graph import END, START, StateGraph
 
 from ...common.tracing import state_thread_id, trace_chat_turn
 from ...domain.models import MessageRequest, MessageResponse, Route
-from ...domain.safety import assess_message_safety
 from ..state import AgenticState, pop_dialog_state
 from ..rag_agent import RagAgent
 from .prompt import ORCHESTRATOR_SYSTEM_PROMPT
+from .responder import DirectResponder, MessageResponder
 from .router import ROUTING_CONFIDENCE_THRESHOLD, MessageRouter, Router
 
 
@@ -22,9 +22,15 @@ class Orchestrator:
 
     prompt = ORCHESTRATOR_SYSTEM_PROMPT
 
-    def __init__(self, rag_agent: RagAgent, router: Router | None = None) -> None:
+    def __init__(
+        self,
+        rag_agent: RagAgent,
+        router: Router | None = None,
+        direct_responder: DirectResponder | None = None,
+    ) -> None:
         self._rag_agent = rag_agent
         self._router = router or MessageRouter()
+        self._direct_responder = direct_responder or MessageResponder()
         builder = StateGraph(AgenticState)
         builder.add_node("primary_assistant", self._primary_assistant)
         builder.add_node("direct_response", self._direct_response)
@@ -117,16 +123,16 @@ class Orchestrator:
 
     def _primary_assistant(self, state: AgenticState) -> dict[str, object]:
         prompt = str(state["messages"][-1].content)
-        decision = assess_message_safety(prompt)
+        decision = self._router.decide(prompt)
         if decision.route == "urgent_escalation":
             return {
                 "route": "urgent_escalation",
+                "urgent_message": decision.urgent_message,
                 "agent_states": {
                     "orchestrator": {"status": "complete", "summary": "Urgent route selected."},
                     "rag_agent": {"status": "skipped", "summary": "Safety route selected."},
                 },
             }
-        decision = self._router.decide(prompt)
         display_name = self._display_name_for(decision.display_name)
         if decision.conversation_action != "none" or decision.route == "basic_talk":
             updates: dict[str, object] = {
@@ -185,21 +191,11 @@ class Orchestrator:
     def _direct_response(self, state: AgenticState) -> dict[str, object]:
         action = state.get("conversation_action", "none")
         display_name = state.get("display_name")
-        if action == "remember_name" and display_name:
-            answer = (
-                f"Nice to meet you, {display_name}. I’m MedChat, a medical-reference "
-                "assistant. What health-information question can I help you look up?"
-            )
-        elif action == "recall_name":
-            answer = (
-                f"Your name is {display_name}."
-                if display_name
-                else "I do not know your name yet. You can introduce yourself whenever you like."
-            )
-        elif action == "recall_history":
-            answer = self._history_recall_response(state["messages"])
-        else:
-            answer = self._basic_talk_response(display_name)
+        answer = self._direct_responder.respond(
+            messages=state["messages"],
+            conversation_action=action,
+            display_name=display_name,
+        )
         response = MessageResponse(
             answer=answer,
             citations=[],
@@ -218,34 +214,6 @@ class Orchestrator:
         normalized = " ".join(value.split())
         return normalized[:64] or None
 
-    @staticmethod
-    def _basic_talk_response(display_name: str | None) -> str:
-        if display_name:
-            return (
-                f"Hi, {display_name}! I’m MedChat, a medical-reference assistant. "
-                "What health-information question can I help you look up?"
-            )
-        return (
-            "I’m MedChat, a medical-reference assistant. I can help with health-information "
-            "questions from the knowledge base and provide citations."
-        )
-
-    @staticmethod
-    def _history_recall_response(messages: list[object]) -> str:
-        """Summarize recent user messages without sending conversation content to RAG."""
-        prior_user_messages = [
-            str(message.content).strip()
-            for message in messages[:-1]
-            if isinstance(message, HumanMessage) and str(message.content).strip()
-        ]
-        if not prior_user_messages:
-            return "You have not sent an earlier message in this conversation yet."
-        recent_messages = prior_user_messages[-5:]
-        rendered_messages = "; ".join(
-            f"“{message[:200]}”" for message in recent_messages
-        )
-        return f"Earlier in this conversation, you said: {rendered_messages}."
-
     def _run_rag_agent(self, state: AgenticState) -> dict[str, object]:
         rag_result = self._rag_agent.run(str(state["messages"][-1].content))
         pop_update = pop_dialog_state(state)
@@ -263,8 +231,9 @@ class Orchestrator:
         }
 
     def _urgent_escalation(self, state: AgenticState) -> dict[str, object]:
-        decision = assess_message_safety(str(state["messages"][-1].content))
-        warning = decision.warning or "Please seek immediate in-person care."
+        warning = state["urgent_message"]
+        if not warning:
+            raise ValueError("Urgent escalation requires router-provided guidance.")
         response = MessageResponse(
             answer=warning,
             citations=[],

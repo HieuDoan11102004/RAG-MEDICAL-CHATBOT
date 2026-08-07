@@ -53,6 +53,7 @@ class AgenticState(TypedDict, total=False):
     user_id: Annotated[str, "User ID"]
     email: Annotated[Optional[EmailStr], "Email from context (optional)"]
     display_name: Annotated[Optional[str], "User-provided name for this conversation"]
+    urgent_message: Annotated[Optional[str], "LLM-generated immediate-care guidance"]
     conversation_action: Literal["none", "remember_name", "recall_name", "recall_history"]
     agent_states: Annotated[
         dict[AgentName, AgentExecutionState], update_agent_states

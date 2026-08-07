@@ -1,11 +1,11 @@
-"""Structured LLM routing for non-urgent MedChat messages."""
+"""Structured LLM routing for MedChat messages."""
 
 from __future__ import annotations
 
 from typing import Callable, Literal, Protocol
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from ...agents.rag_agent.components.llm import load_llm
 from ...common.logger import get_logger
@@ -13,7 +13,7 @@ from .prompt import ROUTER_SYSTEM_PROMPT
 
 
 logger = get_logger(__name__)
-RouterRoute = Literal["basic_talk", "rag_agent", "clarification"]
+RouterRoute = Literal["basic_talk", "rag_agent", "clarification", "urgent_escalation"]
 ConversationAction = Literal["none", "remember_name", "recall_name", "recall_history"]
 ROUTING_CONFIDENCE_THRESHOLD = 0.75
 
@@ -25,10 +25,17 @@ class RoutingDecision(BaseModel):
     confidence: float = Field(ge=0, le=1)
     conversation_action: ConversationAction
     display_name: str | None
+    urgent_message: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def require_urgent_message(self) -> "RoutingDecision":
+        if self.route == "urgent_escalation" and not self.urgent_message:
+            raise ValueError("urgent_escalation decisions require urgent_message")
+        return self
 
 
 class Router(Protocol):
-    """Boundary used by the orchestrator to classify a non-urgent message."""
+    """Boundary used by the orchestrator to classify a message."""
 
     def decide(self, prompt: str) -> RoutingDecision: ...
 
@@ -54,4 +61,5 @@ class MessageRouter:
                 confidence=0.0,
                 conversation_action="none",
                 display_name=None,
+                urgent_message=None,
             )

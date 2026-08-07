@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from flask import Flask, jsonify, request
 
 from .agents.orchestrator import Orchestrator
+from .agents.orchestrator.responder import DirectResponder
 from .agents.orchestrator.router import Router
 from .agents.rag_agent import RagAgent
 from .agents.rag_agent.components.retriever import answer_question
@@ -21,13 +22,18 @@ def _allowed_origins(raw_origins: str | None = None) -> frozenset[str]:
 
 
 def create_app(
-    *, allowed_origins: Iterable[str] | None = None, router: Router | None = None
+    *,
+    allowed_origins: Iterable[str] | None = None,
+    router: Router | None = None,
+    direct_responder: DirectResponder | None = None,
 ) -> Flask:
     """Create the stateless API application."""
     app = Flask(__name__)
     origins = frozenset(allowed_origins) if allowed_origins is not None else _allowed_origins()
     orchestrator = Orchestrator(
-        RagAgent(answer_fn=lambda prompt: answer_question(prompt)), router=router
+        RagAgent(answer_fn=lambda prompt: answer_question(prompt)),
+        router=router,
+        direct_responder=direct_responder,
     )
 
     @app.after_request
