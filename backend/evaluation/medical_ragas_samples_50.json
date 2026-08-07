@@ -1,0 +1,352 @@
+[
+  {
+    "id": "medical-01",
+    "user_input": "What is Cancer?",
+    "reference": "Cancer is not just one disease,but a large group of almost one hundred diseases.",
+    "source_entry_title": "Cancer",
+    "source_page": 20
+  },
+  {
+    "id": "medical-02",
+    "user_input": "What is Cerebral palsy?",
+    "reference": "Cerebral palsy (CP) is the term used for a group of nonprogressive disorders of movement and posture caused by abnormal development of, or damage to, motor control centers of the brain.",
+    "source_entry_title": "Cerebral palsy",
+    "source_page": 90
+  },
+  {
+    "id": "medical-03",
+    "user_input": "What is Cystic fibrosis?",
+    "reference": "Cystic fibrosis (CF) is an inherited disease that affects the lungs, digestive system, sweat glands, and male fertility.",
+    "source_entry_title": "Cystic fibrosis",
+    "source_page": 373
+  },
+  {
+    "id": "medical-04",
+    "user_input": "What is Coronary artery disease?",
+    "reference": "Coronary artery disease is a narrowing or blockage of the arteries and vessels that provide oxygen and nutrients to the heart.",
+    "source_entry_title": "Coronary artery disease",
+    "source_page": 317
+  },
+  {
+    "id": "medical-05",
+    "user_input": "What is Diabetes mellitus?",
+    "reference": "Diabetes mellitus is a condition in which the pancreas no longer produces enough insulin or when cells stop responding to the insulin that is produced,so that glucose in the blood cannot be absorbed into the cells of the body.",
+    "source_entry_title": "Diabetes mellitus",
+    "source_page": 435
+  },
+  {
+    "id": "medical-06",
+    "user_input": "What is Colon cancer?",
+    "reference": "Cancerof the colon is the disease characterized by the development of malignant cells in the lining or epithelium of the first and longest portion of the large intestine.",
+    "source_entry_title": "Colon cancer",
+    "source_page": 237
+  },
+  {
+    "id": "medical-07",
+    "user_input": "What is Cervical cancer?",
+    "reference": "Cervical canceris a disease in which the cells of the cervix become abnormal and start to grow uncontrollably,forming tumors.",
+    "source_entry_title": "Cervical cancer",
+    "source_page": 100
+  },
+  {
+    "id": "medical-08",
+    "user_input": "What is Childbirth?",
+    "reference": "Childbirth includes both labor (the process of birth) and delivery (the birth itself); it refers to the entire process as an infant makes its way from the womb down the birth canal to the outside world.",
+    "source_entry_title": "Childbirth",
+    "source_page": 145
+  },
+  {
+    "id": "medical-09",
+    "user_input": "What is Ehlers-Danlos syndrome?",
+    "reference": "The Ehlers-Danlos syndromes (EDS) refer to a group of inherited disorders that affect collagen structure and function.",
+    "source_entry_title": "Ehlers-Danlos syndrome",
+    "source_page": 524
+  },
+  {
+    "id": "medical-10",
+    "user_input": "What is Food poisoning?",
+    "reference": "Food poisoning is a general term for health problems arising from eating contaminated food.",
+    "source_entry_title": "Food poisoning",
+    "source_page": 738
+  },
+  {
+    "id": "medical-11",
+    "user_input": "What is Creutzfeldt-Jakob disease?",
+    "reference": "Creutzfeldt-Jakob disease (CJD) is a transmissible, rapidly progressing, fatal neurodegenerative disorder called a spongioform degeneration that seems to be related to \u201cmad cow disease.\u201d",
+    "source_entry_title": "Creutzfeldt-Jakob disease",
+    "source_page": 339
+  },
+  {
+    "id": "medical-12",
+    "user_input": "What is Coagulation disorders?",
+    "reference": "Coagulation disorders deal with disruption of the body\u2019s ability to control blood clotting.",
+    "source_entry_title": "Coagulation disorders",
+    "source_page": 215
+  },
+  {
+    "id": "medical-13",
+    "user_input": "What is Endometrial cancer?",
+    "reference": "Endometrial cancer develops when the cells that make up the inner lining of the uterus (the endometrium) become abnormal and grow uncontrollably.",
+    "source_entry_title": "Endometrial cancer",
+    "source_page": 575
+  },
+  {
+    "id": "medical-14",
+    "user_input": "What is Fractures?",
+    "reference": "A fracture is a complete or incomplete break in a bone resulting from the application of excessive force.",
+    "source_entry_title": "Fractures",
+    "source_page": 748
+  },
+  {
+    "id": "medical-15",
+    "user_input": "What is Detoxification?",
+    "reference": "Detoxification is one of the more widely used treatments and concepts in alternative medicine.",
+    "source_entry_title": "Detoxification",
+    "source_page": 429
+  },
+  {
+    "id": "medical-16",
+    "user_input": "What is Chickenpox?",
+    "reference": "Chickenpox (also called varicella) is a common and extremely infectious childhood disease that also affects adults on occasion.",
+    "source_entry_title": "Chickenpox",
+    "source_page": 138
+  },
+  {
+    "id": "medical-17",
+    "user_input": "What is Chiropractic?",
+    "reference": "Chiropractic is from Greek words meaning done by hand.",
+    "source_entry_title": "Chiropractic",
+    "source_page": 156
+  },
+  {
+    "id": "medical-18",
+    "user_input": "What is Down syndrome?",
+    "reference": "Down syndrome is the most common cause of mental retardation and malformation in a newborn.",
+    "source_entry_title": "Down syndrome",
+    "source_page": 486
+  },
+  {
+    "id": "medical-19",
+    "user_input": "What is Eye examination?",
+    "reference": "An eye examination is a series of tests that measure a person\u2019s ocular health and visual status, to detect abnormalities in the components of the visual system, and to determine how well the person can see.",
+    "source_entry_title": "Eye examination",
+    "source_page": 648
+  },
+  {
+    "id": "medical-20",
+    "user_input": "What is Familial Mediterranean fever?",
+    "reference": "Familial Mediterranean fever(FMF) is an inherited of the inflammatory response characterized by attacks of fever,accompanied by intense pain in the abdomen, chest, or joints.",
+    "source_entry_title": "Familial Mediterranean fever",
+    "source_page": 667
+  },
+  {
+    "id": "medical-21",
+    "user_input": "What is Charcot Marie Tooth disease?",
+    "reference": "Charcot Marie Tooth disease(CMT) is the name of a group of inherited disorders of the nerves in the peripheral nervous system (nerves throughout the body that communicate motor and sensory information to and from the spinal cord) causing weakness and loss of sensation in the limbs.",
+    "source_entry_title": "Charcot Marie Tooth disease",
+    "source_page": 121
+  },
+  {
+    "id": "medical-22",
+    "user_input": "What is Fetal alcohol syndrome?",
+    "reference": "Fetal alcohol syndrome (FAS) is a pattern of birth defects, learning, and behavioral problems affecting individuals whose mothers consumed alcohol during pregnancy.",
+    "source_entry_title": "Fetal alcohol syndrome",
+    "source_page": 695
+  },
+  {
+    "id": "medical-23",
+    "user_input": "What is Fibrocystic condition of the breast?",
+    "reference": "Fibrocystic condition of the breast is a term that may refer to a variety of symptoms:breast lumpiness or tenderness, microscopic breast tissue, and/or the x ray or ultrasound picture of the breast.",
+    "source_entry_title": "Fibrocystic condition of the breast",
+    "source_page": 708
+  },
+  {
+    "id": "medical-24",
+    "user_input": "What is Coronary artery bypass graft surgery?",
+    "reference": "Coronary artery bypass graft surgery is a surgical procedure in which one or more blocked coronary arteries are bypassed by a blood vessel graft to restore normal blood flow to the heart.",
+    "source_entry_title": "Coronary artery bypass graft surgery",
+    "source_page": 314
+  },
+  {
+    "id": "medical-25",
+    "user_input": "What is Depressive disorders?",
+    "reference": "Depression or depressive disorders (unipolar depression) are mental illnesses characterized by a profound and persistent feeling of sadness or despair and/or a loss of interest in things that were once pleasurable.",
+    "source_entry_title": "Depressive disorders",
+    "source_page": 420
+  },
+  {
+    "id": "medical-26",
+    "user_input": "What is Cervical spondylosis?",
+    "reference": "Cervical spondylosis refers to common age-related changes in the area of the spine at the back of the neck.",
+    "source_entry_title": "Cervical spondylosis",
+    "source_page": 108
+  },
+  {
+    "id": "medical-27",
+    "user_input": "What is Cholangitis?",
+    "reference": "The term cholangitis means inflammation of the bile ducts.",
+    "source_entry_title": "Cholangitis",
+    "source_page": 162
+  },
+  {
+    "id": "medical-28",
+    "user_input": "What is Cushing\u2019s syndrome?",
+    "reference": "Cushing\u2019s syndrome is a relatively rare endocrine (hormonal) disorder resulting from excessive exposure to the hormone cortisol.",
+    "source_entry_title": "Cushing\u2019s syndrome",
+    "source_page": 359
+  },
+  {
+    "id": "medical-29",
+    "user_input": "What is Diverticulosis and diverticulitis?",
+    "reference": "Diverticulosis refers to a condition in which the inner, lining layer of the large intestine (colon) bulges out (herniates) through the outer,muscular layer.",
+    "source_entry_title": "Diverticulosis and diverticulitis",
+    "source_page": 478
+  },
+  {
+    "id": "medical-30",
+    "user_input": "What is Celiac disease?",
+    "reference": "Celiac disease is a disease of the digestive system that damages the small intestine and interferes with the absorption of nutrients from food.",
+    "source_entry_title": "Celiac disease",
+    "source_page": 70
+  },
+  {
+    "id": "medical-31",
+    "user_input": "What is Cognitive-behavioral therapy?",
+    "reference": "Cognitive-behavioral therapy is an action-oriented form of psychosocial therapy that assumes that maladaptive, or faulty, thinking patterns cause maladaptive behavior and \u201cnegative\u201demotions.",
+    "source_entry_title": "Cognitive-behavioral therapy",
+    "source_page": 228
+  },
+  {
+    "id": "medical-32",
+    "user_input": "What is Common cold?",
+    "reference": "The common cold is a viral infection of the upper respiratory system,including the nose,throat,sinuses, eustachian tubes, trachea, larynx, and bronchial tubes.",
+    "source_entry_title": "Common cold",
+    "source_page": 258
+  },
+  {
+    "id": "medical-33",
+    "user_input": "What is Crohn\u2019s disease?",
+    "reference": "Crohn\u2019s disease is a type of inflammatory bowel disease (IBD),resulting in swelling and dysfunction of the intestinal tract.",
+    "source_entry_title": "Crohn\u2019s disease",
+    "source_page": 345
+  },
+  {
+    "id": "medical-34",
+    "user_input": "What is Dialysis, kidney?",
+    "reference": "Dialysis treatment replaces the function of the kidneys,which normally serve as the body\u2019s natural filtration system.",
+    "source_entry_title": "Dialysis, kidney",
+    "source_page": 446
+  },
+  {
+    "id": "medical-35",
+    "user_input": "What is Diarrhea?",
+    "reference": "To most individuals, diarrhea means an increased frequency or decreased consistency of bowel movements; however, the medical definition is more exact than this.",
+    "source_entry_title": "Diarrhea",
+    "source_page": 453
+  },
+  {
+    "id": "medical-36",
+    "user_input": "What is Chronic fatigue syndrome?",
+    "reference": "Chronic fatiguesyndrome (CFS) is a condition that causes extreme tiredness.",
+    "source_entry_title": "Chronic fatigue syndrome",
+    "source_page": 190
+  },
+  {
+    "id": "medical-37",
+    "user_input": "What is Congenital heart disease?",
+    "reference": "Congenital heart disease, also called congenital heart defect,includes a variety of malformations of the heart or its major blood vessels that are present at birth.",
+    "source_entry_title": "Congenital heart disease",
+    "source_page": 288
+  },
+  {
+    "id": "medical-38",
+    "user_input": "What is Dementia?",
+    "reference": "Dementia is a loss of mental ability severe enough to interfere with normal activities of daily living, lasting more than six months, not present since birth, and not associated with a loss or alteration of consciousness.",
+    "source_entry_title": "Dementia",
+    "source_page": 412
+  },
+  {
+    "id": "medical-39",
+    "user_input": "What is Escherichia coli?",
+    "reference": "E.",
+    "source_entry_title": "Escherichia coli",
+    "source_page": 622
+  },
+  {
+    "id": "medical-40",
+    "user_input": "What is Fatigue?",
+    "reference": "Fatigue is physical and/or mental exhaustion that ent can be triggered by stress, medication, overwork, or may mental and physical illness or disease.",
+    "source_entry_title": "Fatigue",
+    "source_page": 681
+  },
+  {
+    "id": "medical-41",
+    "user_input": "What is Cardiopulmonary resuscitation (CPR)?",
+    "reference": "Cardiopulmonary resuscitation (CPR) is a procedure to support and maintain breathing and circulation for a person who has stopped breathing (respiratory arrest) and/or whose heart has stopped (cardiac arrest).",
+    "source_entry_title": "Cardiopulmonary resuscitation (CPR)",
+    "source_page": 50
+  },
+  {
+    "id": "medical-42",
+    "user_input": "What is Cesarean section?",
+    "reference": "A cesarean section is a surgical procedure in which incisions are made through a woman\u2019s abdomen and uterus to deliver her baby.",
+    "source_entry_title": "Cesarean section",
+    "source_page": 112
+  },
+  {
+    "id": "medical-43",
+    "user_input": "What is Chemotherapy?",
+    "reference": "Chemotherapy is treatment of cancer with anticancer drugs.",
+    "source_entry_title": "Chemotherapy",
+    "source_page": 129
+  },
+  {
+    "id": "medical-44",
+    "user_input": "What is Chronic obstructive lung disease?",
+    "reference": "Chronic obstructive lung disease, also known as chronic obstructive pulmonary disease (COPD),is a general term for a group of conditions in which there is persistent difficulty in expelling (or exhaling) air from the lungs.",
+    "source_entry_title": "Chronic obstructive lung disease",
+    "source_page": 198
+  },
+  {
+    "id": "medical-45",
+    "user_input": "What is Dizziness?",
+    "reference": "As a disorder,dizziness is classified into three categories\u2014vertigo, syncope, and nonsyncope nonvertigo.",
+    "source_entry_title": "Dizziness",
+    "source_page": 482
+  },
+  {
+    "id": "medical-46",
+    "user_input": "What is Emphysema?",
+    "reference": "Emphysema is a chronic respiratory disease where there is over-inflation of the air sacs (alveoli) in the lungs, causing a decrease in lung function, and often, breathlessness.",
+    "source_entry_title": "Emphysema",
+    "source_page": 559
+  },
+  {
+    "id": "medical-47",
+    "user_input": "What is Endocarditis?",
+    "reference": "The endocardium is the inner lining of the heart muscle, which also covers the heart valves.",
+    "source_entry_title": "Endocarditis",
+    "source_page": 569
+  },
+  {
+    "id": "medical-48",
+    "user_input": "What is Frostbite and frostnip?",
+    "reference": "Frostbite is the term for damage to the skin and other tissues caused by freezing.",
+    "source_entry_title": "Frostbite and frostnip",
+    "source_page": 756
+  },
+  {
+    "id": "medical-49",
+    "user_input": "What is Constipation?",
+    "reference": "Constipation is an acute or chronic condition in which bowel movements occur less often than usual or consist of hard,dry stools that are painful or difficult to pass.",
+    "source_entry_title": "Constipation",
+    "source_page": 294
+  },
+  {
+    "id": "medical-50",
+    "user_input": "What is Cystitis?",
+    "reference": "Cystitis is defined as inflammation of the urinary bladder.",
+    "source_entry_title": "Cystitis",
+    "source_page": 380
+  }
+]
