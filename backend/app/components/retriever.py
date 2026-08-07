@@ -35,11 +35,19 @@ _RESPONSE_SCHEMA = {
 @dataclass(frozen=True)
 class Citation:
     id: str
-    title: str
+    source_name: str
+    entry_title: str | None
     page: int | None
 
     def as_dict(self) -> dict[str, str | int | None]:
-        return {"id": self.id, "title": self.title, "page": self.page}
+        title = self.source_name
+        if self.entry_title:
+            title = f"{self.source_name} — {self.entry_title}"
+        citation: dict[str, str | int | None] = {"id": self.id, "title": title, "page": self.page}
+        if self.entry_title:
+            citation["source_name"] = self.source_name
+            citation["entry_title"] = self.entry_title
+        return citation
 
 
 def _data_source_name(metadata: Mapping[str, Any]) -> str:
@@ -55,7 +63,15 @@ def _data_source_name(metadata: Mapping[str, Any]) -> str:
     return filename_stem.replace("_", " ").replace("-", " ").strip().title()
 
 
+def _entry_title(metadata: Mapping[str, Any]) -> str | None:
+    value = metadata.get("entry_title")
+    return value.strip() if isinstance(value, str) and value.strip() else None
+
+
 def _source_page(metadata: Mapping[str, Any]) -> int | None:
+    page_start = metadata.get("page_start")
+    if isinstance(page_start, int) and page_start >= 1:
+        return page_start
     page_label = metadata.get("page_label")
     if isinstance(page_label, str) and page_label.isdigit():
         return int(page_label)
@@ -68,10 +84,14 @@ def _retrieved_evidence(documents: list[Document]) -> tuple[list[Citation], str]
     context_blocks: list[str] = []
     for index, document in enumerate(documents, start=1):
         citation = Citation(
-            f"source-{index}", _data_source_name(document.metadata), _source_page(document.metadata)
+            f"source-{index}",
+            _data_source_name(document.metadata),
+            _entry_title(document.metadata),
+            _source_page(document.metadata),
         )
         citations.append(citation)
-        location = citation.title if citation.page is None else f"{citation.title}, page {citation.page}"
+        citation_data = citation.as_dict()
+        location = citation_data["title"] if citation.page is None else f"{citation_data['title']}, page {citation.page}"
         context_blocks.append(f"[{citation.id} | {location}]\n{document.page_content}")
     return citations, "\n\n".join(context_blocks)
 
@@ -107,10 +127,10 @@ def _validated_response(result: Any, citations: list[Citation]) -> dict[str, Any
     ):
         return _abstention_response()
     unique_citations: list[dict[str, str | int | None]] = []
-    seen_citation_locations: set[tuple[str, int | None]] = set()
+    seen_citation_locations: set[tuple[str, str | None, int | None]] = set()
     for citation_id in citation_ids:
         citation = citations_by_id[citation_id].as_dict()
-        location = (citation["title"], citation["page"])
+        location = (citation.get("source_name", citation["title"]), citation.get("entry_title"), citation["page"])
         if location not in seen_citation_locations:
             seen_citation_locations.add(location)
             unique_citations.append(citation)

@@ -3,11 +3,15 @@ import sys
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-
-from .pdf_loader import create_text_chunks, load_pdf_files
-from .vector_store import save_vector_store
-from ..common.custom_exception import CustomException
-from ..common.logger import get_logger
+    from app.common.custom_exception import CustomException
+    from app.common.logger import get_logger
+    from app.components.pdf_loader import create_text_chunks, load_pdf_files
+    from app.components.vector_store import save_vector_store
+else:
+    from .pdf_loader import create_text_chunks, load_pdf_files
+    from .vector_store import save_vector_store
+    from ..common.custom_exception import CustomException
+    from ..common.logger import get_logger
 
 logger = get_logger(__name__)
 

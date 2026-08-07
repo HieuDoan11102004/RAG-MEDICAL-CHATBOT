@@ -65,6 +65,38 @@ class CitationValidationTests(unittest.TestCase):
             [{"id": "source-1", "title": "The Gale Encyclopedia Of Medicine Second", "page": 20}],
         )
 
+    @patch("app.components.retriever.load_llm")
+    @patch("app.components.retriever.load_vector_store")
+    def test_gale_citation_uses_entry_title_and_start_page(self, load_store, load_llm) -> None:
+        load_store.return_value.similarity_search.return_value = [
+            Document(
+                page_content="CPR supports breathing and circulation.",
+                metadata={
+                    "source": "/data/The_GALE_ENCYCLOPEDIA_of_MEDICINE_SECOND.pdf",
+                    "data_source_name": "Gale Encyclopedia of Medicine",
+                    "entry_title": "Cardiopulmonary resuscitation (CPR)",
+                    "page_start": 50,
+                },
+            )
+        ]
+        load_llm.return_value.with_structured_output.return_value.invoke.return_value = {
+            "answer": "CPR supports breathing and circulation.",
+            "citation_ids": ["source-1"],
+        }
+
+        response = answer_question("What is CPR?")
+
+        self.assertEqual(
+            response["citations"],
+            [{
+                "id": "source-1",
+                "title": "Gale Encyclopedia of Medicine — Cardiopulmonary resuscitation (CPR)",
+                "source_name": "Gale Encyclopedia of Medicine",
+                "entry_title": "Cardiopulmonary resuscitation (CPR)",
+                "page": 50,
+            }],
+        )
+
     def test_unknown_or_missing_citations_abstain(self) -> None:
         citations = []
         expected = {"answer": _ABSTENTION, "citations": []}
@@ -72,7 +104,7 @@ class CitationValidationTests(unittest.TestCase):
         self.assertEqual(_validated_response({"answer": "Advice", "citation_ids": []}, citations), expected)
 
     def test_repeated_citations_are_returned_once_at_answer_end(self) -> None:
-        citation = Citation("source-1", "The Gale Encyclopedia Of Medicine Second", 7)
+        citation = Citation("source-1", "The Gale Encyclopedia Of Medicine Second", None, 7)
 
         response = _validated_response(
             {"answer": "Supported answer.", "citation_ids": ["source-1", "source-1"]},
