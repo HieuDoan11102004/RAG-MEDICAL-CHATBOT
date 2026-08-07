@@ -1,8 +1,8 @@
 from langchain_openai import OpenAIEmbeddings
 
-from ..common.logger import get_logger
-from ..common.custom_exception import CustomException
-from ..config.config import OPENAI_EMBEDDING_MODEL, get_openai_api_key
+from ....common.logger import get_logger
+from ....common.custom_exception import CustomException
+from ....config.config import OPENAI_EMBEDDING_MODEL, get_openai_api_key
 
 logger = get_logger(__name__)
 

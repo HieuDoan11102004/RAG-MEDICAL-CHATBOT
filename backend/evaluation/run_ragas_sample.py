@@ -20,8 +20,8 @@ from ragas.metrics.collections import (
     Faithfulness,
 )
 
-from app.components.retriever import answer_question
-from app.components.vector_store import load_vector_store
+from app.agents.rag_agent.components.retriever import answer_question
+from app.agents.rag_agent.components.vector_store import load_vector_store
 from app.config.config import OPENAI_EMBEDDING_MODEL, get_openai_api_key
 
 SAMPLES_PATH = Path(__file__).with_name("medical_ragas_samples_50.json")

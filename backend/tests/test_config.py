@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from app.common.custom_exception import CustomException
-from app.components import embeddings, llm
+from app.agents.rag_agent.components import embeddings, llm
 from app.config.config import (
     PROJECT_ROOT,
     ConfigurationError,

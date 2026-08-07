@@ -3,10 +3,10 @@ import os
 import time
 from .embeddings import get_embedding_model
 
-from ..common.logger import get_logger
-from ..common.custom_exception import CustomException
+from ....common.logger import get_logger
+from ....common.custom_exception import CustomException
 
-from ..config.config import DB_FAISS_PATH, OPENAI_EMBEDDING_MODEL
+from ....config.config import DB_FAISS_PATH, OPENAI_EMBEDDING_MODEL
 
 logger = get_logger(__name__)
 
@@ -27,7 +27,7 @@ def load_vector_store():
                     "Saved FAISS index dimension does not match the configured embedding model. "
                     f"Index dimension: {index_dimension}, embedding dimension: {embedding_dimension}, "
                     f"model: {OPENAI_EMBEDDING_MODEL}. Rebuild the vector store with the current embedding model "
-                    "by running `uv run app/components/data_loader.py`."
+                    "by running `uv run python -m app.agents.rag_agent.components.data_loader`."
                 )
             logger.info("FAISS vector store loaded successfully.")
             return vector_store

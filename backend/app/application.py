@@ -7,7 +7,11 @@ from collections.abc import Iterable
 
 from flask import Flask, jsonify, request
 
-from .components.retriever import answer_question
+from .agents.orchestrator import Orchestrator
+from .agents.orchestrator.router import Router
+from .agents.rag_agent import RagAgent
+from .agents.rag_agent.components.retriever import answer_question
+from .api.schemas import RequestValidationError, parse_message_request
 
 
 def _allowed_origins(raw_origins: str | None = None) -> frozenset[str]:
@@ -16,10 +20,15 @@ def _allowed_origins(raw_origins: str | None = None) -> frozenset[str]:
     return frozenset(origin.strip() for origin in value.split(",") if origin.strip())
 
 
-def create_app(*, allowed_origins: Iterable[str] | None = None) -> Flask:
+def create_app(
+    *, allowed_origins: Iterable[str] | None = None, router: Router | None = None
+) -> Flask:
     """Create the stateless API application."""
     app = Flask(__name__)
     origins = frozenset(allowed_origins) if allowed_origins is not None else _allowed_origins()
+    orchestrator = Orchestrator(
+        RagAgent(answer_fn=lambda prompt: answer_question(prompt)), router=router
+    )
 
     @app.after_request
     def add_cors_headers(response):
@@ -35,31 +44,31 @@ def create_app(*, allowed_origins: Iterable[str] | None = None) -> Flask:
     def health():
         return jsonify({"status": "ok"})
 
-    @app.route("/api/chat", methods=["POST", "OPTIONS"])
-    def chat():
+    def _handle_message(*, legacy_response: bool):
         if request.method == "OPTIONS":
             return ("", 204)
 
-        payload = request.get_json(silent=True)
-        prompt = payload.get("prompt") if isinstance(payload, dict) else None
-        if not isinstance(prompt, str) or not prompt.strip():
-            return jsonify({"error": "prompt must be a non-blank string."}), 400
+        try:
+            message = parse_message_request(request.get_json(silent=True))
+        except RequestValidationError as exc:
+            return jsonify({"error": str(exc)}), 400
 
         try:
-            response = answer_question(prompt.strip())
-            answer = response.get("answer") if isinstance(response, dict) else None
-            if not isinstance(answer, str) or not answer.strip():
-                answer = "Sorry, I couldn't find an answer."
-            citations = response.get("citations") if isinstance(response, dict) else []
-            return jsonify(
-                {
-                    "answer": answer,
-                    "citations": citations if isinstance(citations, list) else [],
-                }
-            )
+            response = orchestrator.handle(message)
+            return jsonify(response.as_legacy_dict() if legacy_response else response.as_dict())
         except Exception:
             app.logger.exception("Unable to process chat request")
             return jsonify({"error": "Unable to process your request."}), 500
+
+    @app.route("/api/messages", methods=["POST", "OPTIONS"])
+    def messages():
+        """Versioned orchestration endpoint; uploads arrive in the OCR phase."""
+        return _handle_message(legacy_response=False)
+
+    @app.route("/api/chat", methods=["POST", "OPTIONS"])
+    def chat():
+        """Backward-compatible adapter for the original text-chat API."""
+        return _handle_message(legacy_response=True)
 
     return app
 

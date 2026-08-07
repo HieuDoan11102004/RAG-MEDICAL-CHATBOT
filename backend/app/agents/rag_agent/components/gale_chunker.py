@@ -260,7 +260,7 @@ def load_gale_pdf(path: str | Path, max_chars: int = 1200) -> list[Document]:
 
 def main() -> None:
     if len(sys.argv) < 3:
-        raise SystemExit("Usage: python -m app.components.gale_chunker input.pdf output.jsonl [start_page] [end_page]")
+        raise SystemExit("Usage: python -m app.agents.rag_agent.components.gale_chunker input.pdf output.jsonl [start_page] [end_page]")
     input_path, output_path = Path(sys.argv[1]), Path(sys.argv[2])
     with pdfplumber.open(input_path) as pdf:
         start = int(sys.argv[3]) if len(sys.argv) > 3 else 0

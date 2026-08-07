@@ -10,8 +10,10 @@ from urllib.parse import urlparse
 
 from langchain_core.documents import Document
 
-from ..common.custom_exception import CustomException
-from ..common.logger import get_logger
+from ....common.custom_exception import CustomException
+from ....common.logger import get_logger
+from ....common.tracing import trace_retrieval
+from ..prompt import build_rag_prompt
 from .llm import load_llm
 from .vector_store import load_vector_store
 
@@ -96,19 +98,6 @@ def _retrieved_evidence(documents: list[Document]) -> tuple[list[Citation], str]
     return citations, "\n\n".join(context_blocks)
 
 
-def _generation_prompt(question: str, context: str) -> str:
-    return f"""You are a medical-reference assistant. Answer only from the supplied evidence.
-Return one concise answer and cite it with one or more source IDs from the evidence.
-Do not provide an answer when its evidence is missing, uncertain, or conflicting. Do not invent source IDs.
-If the evidence cannot support an answer, return an empty answer and citation_ids array.
-
-Evidence:
-{context}
-
-Question: {question}
-"""
-
-
 def _abstention_response() -> dict[str, Any]:
     return {"answer": _ABSTENTION, "citations": []}
 
@@ -143,12 +132,17 @@ def answer_question(question: str) -> dict[str, Any]:
         vector_store = load_vector_store()
         if vector_store is None:
             raise CustomException("Vector store not found. Please run the data processing script first.")
-        documents = vector_store.similarity_search(question, k=_RETRIEVAL_COUNT)
+        with trace_retrieval(query=question) as retrieval_observation:
+            documents = vector_store.similarity_search(question, k=_RETRIEVAL_COUNT)
+            if retrieval_observation is not None:
+                retrieval_observation.update(
+                    output={"document_count": len(documents), "requested_count": _RETRIEVAL_COUNT}
+                )
         if not documents:
             return _abstention_response()
         citations, context = _retrieved_evidence(documents)
         structured_llm = load_llm().with_structured_output(_RESPONSE_SCHEMA)
-        result = structured_llm.invoke(_generation_prompt(question, context))
+        result = structured_llm.invoke(build_rag_prompt(question, context))
         return _validated_response(result, citations)
     except CustomException:
         raise

@@ -13,11 +13,11 @@ export class ChatApiError extends Error {}
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "";
 
-export async function sendPrompt(prompt: string): Promise<ChatResponse> {
-  const response = await fetch(`${apiBaseUrl}/api/chat`, {
+export async function sendPrompt(prompt: string, conversationId: string): Promise<ChatResponse> {
+  const response = await fetch(`${apiBaseUrl}/api/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, conversation_id: conversationId }),
   });
 
   const payload = (await response.json().catch(() => null)) as

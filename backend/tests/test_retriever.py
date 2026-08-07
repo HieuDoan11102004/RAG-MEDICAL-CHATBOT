@@ -7,15 +7,15 @@ from unittest.mock import patch
 
 from langchain_core.documents import Document
 
-from app.components.retriever import Citation, _ABSTENTION, _validated_response, answer_question
+from app.agents.rag_agent.components.retriever import Citation, _ABSTENTION, _validated_response, answer_question
 
 
 class CitationValidationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.documents = [Document(page_content="Drink fluids.", metadata={"source": "/data/gale_medicine.pdf", "page": 2})]
 
-    @patch("app.components.retriever.load_llm")
-    @patch("app.components.retriever.load_vector_store")
+    @patch("app.agents.rag_agent.components.retriever.load_llm")
+    @patch("app.agents.rag_agent.components.retriever.load_vector_store")
     def test_answer_returns_retrieved_citations(self, load_store, load_llm) -> None:
         load_store.return_value.similarity_search.return_value = self.documents
         load_llm.return_value.with_structured_output.return_value.invoke.return_value = {
@@ -28,8 +28,8 @@ class CitationValidationTests(unittest.TestCase):
         self.assertEqual(response["citations"], [{"id": "source-1", "title": "Gale Medicine", "page": 3}])
         load_store.return_value.similarity_search.assert_called_once_with("What should I do?", k=4)
 
-    @patch("app.components.retriever.load_llm")
-    @patch("app.components.retriever.load_vector_store")
+    @patch("app.agents.rag_agent.components.retriever.load_llm")
+    @patch("app.agents.rag_agent.components.retriever.load_vector_store")
     def test_data_source_name_takes_priority_over_a_source_url(self, load_store, load_llm) -> None:
         load_store.return_value.similarity_search.return_value = [
             Document(
@@ -45,8 +45,8 @@ class CitationValidationTests(unittest.TestCase):
 
         self.assertEqual(response["citations"][0]["title"], "Medical Handbook")
 
-    @patch("app.components.retriever.load_llm")
-    @patch("app.components.retriever.load_vector_store")
+    @patch("app.agents.rag_agent.components.retriever.load_llm")
+    @patch("app.agents.rag_agent.components.retriever.load_vector_store")
     def test_windows_source_path_is_reduced_to_its_filename(self, load_store, load_llm) -> None:
         load_store.return_value.similarity_search.return_value = [
             Document(
@@ -65,8 +65,8 @@ class CitationValidationTests(unittest.TestCase):
             [{"id": "source-1", "title": "The Gale Encyclopedia Of Medicine Second", "page": 20}],
         )
 
-    @patch("app.components.retriever.load_llm")
-    @patch("app.components.retriever.load_vector_store")
+    @patch("app.agents.rag_agent.components.retriever.load_llm")
+    @patch("app.agents.rag_agent.components.retriever.load_vector_store")
     def test_gale_citation_uses_entry_title_and_start_page(self, load_store, load_llm) -> None:
         load_store.return_value.similarity_search.return_value = [
             Document(
@@ -113,7 +113,7 @@ class CitationValidationTests(unittest.TestCase):
 
         self.assertEqual(response["citations"], [{"id": "source-1", "title": "The Gale Encyclopedia Of Medicine Second", "page": 7}])
 
-    @patch("app.components.retriever.load_vector_store")
+    @patch("app.agents.rag_agent.components.retriever.load_vector_store")
     def test_no_retrieved_evidence_abstains_without_loading_the_llm(self, load_store) -> None:
         load_store.return_value.similarity_search.return_value = []
 

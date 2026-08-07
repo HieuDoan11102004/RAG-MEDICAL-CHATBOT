@@ -4,10 +4,10 @@ from pathlib import Path
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from ..common.logger import get_logger
-from ..common.custom_exception import CustomException
+from ....common.logger import get_logger
+from ....common.custom_exception import CustomException
 
-from ..config.config import DATA_PATH, CHUNK_SIZE, CHUNK_OVERLAP
+from ....config.config import DATA_PATH, CHUNK_SIZE, CHUNK_OVERLAP
 from .gale_chunker import load_gale_pdf
 
 logger = get_logger(__name__)

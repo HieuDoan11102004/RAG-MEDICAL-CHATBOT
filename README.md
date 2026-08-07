@@ -40,7 +40,7 @@ uv run python -m app.application
 The API listens on <http://localhost:5000>. To rebuild the document index after updating PDFs, run this from `backend/`:
 
 ```bash
-uv run python -m app.components.data_loader
+uv run python -m app.agents.rag_agent.components.data_loader
 ```
 
 ## Ragas evaluation
@@ -91,8 +91,35 @@ CORS_ALLOWED_ORIGINS=https://chat.example.com,http://localhost:5173
 | --- | --- | --- |
 | `GET /api/health` | None | `{ "status": "ok" }` |
 | `POST /api/chat` | `{ "prompt": "medical question" }` | `{ "answer": "...", "citations": [{ "id": "source-1", "title": "...", "page": 12 }] }` |
+| `POST /api/messages` | `{ "prompt": "medical question" }` | The cited answer plus `warnings` and `processing.route` from the orchestrator. |
 
 `POST /api/chat` returns `400` with `{ "error": "..." }` for blank or invalid prompts and `500` with the same error shape when the RAG pipeline cannot complete a request. A claim is returned only when it has at least one citation to a retrieved passage; otherwise the assistant abstains. The top-level `citations` array is deduplicated and rendered once after the answer. The browser retains chat history for its current session; the API is stateless.
+
+`POST /api/messages` is the versioned multi-agent entry point. In this initial text-only phase it validates prompts up to 4,000 characters, routes explicit emergency signals to an immediate-care message before retrieval, and otherwise delegates to the citation-grounded RAG agent. It also accepts optional `conversation_id`, `user_id`, and `email` fields; invalid email addresses are rejected. `/api/chat` remains compatible with the original response shape.
+
+### Multi-agent state
+
+The orchestrator runs a LangGraph hierarchy with a shared `AgenticState`. It merges conversation messages by ID, maintains a `dialog_state` stack (`primary_assistant` → child agent → pop), and stores a separate latest execution status for each agent in `agent_states`. The current RAG agent is implemented; OCR and NER are reserved as future child-agent entries in the same state contract.
+
+Simple greetings, farewells, and capability questions take the `direct_response` route and bypass retrieval. Explicit urgent signals take the safety route; other messages take the citation-grounded RAG route.
+
+Every implemented agent owns its prompt in its package: `agents/orchestrator/prompt.py` and `agents/rag_agent/prompt.py`. The RAG agent's retrieval component imports its prompt from that agent package rather than owning prompt text itself.
+
+Conversation state uses LangGraph's in-memory checkpointer and is keyed by `conversation_id`. It is therefore retained only while the backend process runs; it is not a durable medical-record store. Do not send real user identifiers or email addresses until authentication, access controls, encrypted persistence, retention limits, and privacy review are in place.
+
+### Langfuse tracing
+
+Langfuse tracing is opt-in. Add these values to `backend/.env` only after creating a Langfuse project:
+
+```env
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+LANGFUSE_TRACING_ENVIRONMENT=development
+LANGFUSE_TRACE_CONTENT=false
+```
+
+Each chat turn is traced as `medical-chat-turn` and grouped by a hashed `conversation_id`; the RAG lookup is a nested `retrieve-medical-evidence` retriever observation. User and conversation identifiers are hashed before export. `LANGFUSE_TRACE_CONTENT=false` is the safe default: user prompts, model inputs, and outputs are redacted before export, while route, latency, citation count, and agent graph structure remain visible. Enable content tracing only after a privacy/compliance review.
 
 ## Docker
 

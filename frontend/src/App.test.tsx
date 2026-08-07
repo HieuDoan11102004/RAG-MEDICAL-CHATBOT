@@ -16,16 +16,21 @@ describe("App", () => {
   });
 
   it("shows sent and returned messages, then clears them with New chat", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ answer: "A balanced diet can help.", citations: [{ id: "source-1", title: "The Gale Encyclopedia Of Medicine Second", page: 14 }] }), { status: 200 }));
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ answer: "A balanced diet can help.", citations: [{ id: "source-1", title: "The Gale Encyclopedia Of Medicine Second", page: 14 }] }), { status: 200 }));
     const user = userEvent.setup();
     render(<App />);
+    const firstConversationId = window.sessionStorage.getItem("medchat.conversation-id");
     await user.type(screen.getByLabelText("Ask a medical question"), "How can I eat well?");
     await user.click(screen.getByRole("button", { name: "Send message" }));
     expect(await screen.findByText("A balanced diet can help.")).toBeInTheDocument();
     expect(screen.getByText("The Gale Encyclopedia Of Medicine Second · p. 14")).toBeInTheDocument();
     expect(screen.getByText("How can I eat well?")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("/api/messages", expect.objectContaining({
+      body: JSON.stringify({ prompt: "How can I eat well?", conversation_id: firstConversationId }),
+    }));
     await user.click(screen.getByRole("button", { name: /new chat/i }));
     expect(screen.getByText("How can I help you today?")).toBeInTheDocument();
+    expect(window.sessionStorage.getItem("medchat.conversation-id")).not.toBe(firstConversationId);
   });
 
   it("shows an inline error when the request fails", async () => {

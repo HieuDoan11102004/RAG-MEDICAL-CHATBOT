@@ -8,7 +8,19 @@ import "./styles.css";
 
 let nextMessageId = 0;
 const sessionStorageKey = "medchat.messages";
+const conversationStorageKey = "medchat.conversation-id";
 const createMessage = (role: Message["role"], content: string, citations?: Citation[]): Message => ({ id: `message-${Date.now()}-${++nextMessageId}`, role, content, citations });
+
+function createConversationId(): string {
+  const id = crypto.randomUUID();
+  window.sessionStorage.setItem(conversationStorageKey, id);
+  return id;
+}
+
+function loadConversationId(): string {
+  const saved = window.sessionStorage.getItem(conversationStorageKey);
+  return saved || createConversationId();
+}
 
 function loadMessages(): Message[] {
   try {
@@ -30,7 +42,7 @@ function loadMessages(): Message[] {
 export default function App() {
   const [messages, setMessages] = useState<Message[]>(loadMessages);
   const [isSending, setIsSending] = useState(false);
-  const conversationId = useRef(0);
+  const conversationId = useRef(loadConversationId());
 
   useEffect(() => {
     window.sessionStorage.setItem(sessionStorageKey, JSON.stringify(messages));
@@ -41,7 +53,7 @@ export default function App() {
     setMessages((current) => [...current, createMessage("user", prompt)]);
     setIsSending(true);
     try {
-      const { answer, citations } = await sendPrompt(prompt);
+      const { answer, citations } = await sendPrompt(prompt, requestConversationId);
       if (conversationId.current === requestConversationId) {
         setMessages((current) => [...current, createMessage("assistant", answer, citations)]);
       }
@@ -56,7 +68,7 @@ export default function App() {
   }
 
   function handleNewChat() {
-    conversationId.current += 1;
+    conversationId.current = createConversationId();
     setIsSending(false);
     setMessages([]);
     window.sessionStorage.removeItem(sessionStorageKey);

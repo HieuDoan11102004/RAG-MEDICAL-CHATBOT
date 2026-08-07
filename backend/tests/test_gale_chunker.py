@@ -1,4 +1,4 @@
-from app.components.gale_chunker import Article, Line, articles_to_documents, build_articles
+from app.agents.rag_agent.components.gale_chunker import Article, Line, articles_to_documents, build_articles
 
 
 class FakePage:
