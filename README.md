@@ -43,6 +43,22 @@ The API listens on <http://localhost:5000>. To rebuild the document index after 
 uv run python -m app.components.data_loader
 ```
 
+## Ragas evaluation
+
+Ragas is an evaluation-only dependency and is not included in the deployed API bundle. Install the optional extra, then evaluate one randomly selected source-grounded sample from the 50-case dataset:
+
+```bash
+cd backend
+uv sync --extra evaluation
+uv run --extra evaluation python -m evaluation.run_ragas_sample
+```
+
+Set `RAGAS_SAMPLE_ID=medical-01` to run a specific sample. The 50 samples are generated from the indexed source entries with:
+
+```bash
+uv run --extra evaluation python -m evaluation.build_source_grounded_samples
+```
+
 Start the frontend in a second terminal:
 
 ```bash

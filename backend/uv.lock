@@ -2014,6 +2014,10 @@ dependencies = [
     { name = "pypdf" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
+]
+
+[package.optional-dependencies]
+evaluation = [
     { name = "ragas" },
 ]
 
@@ -2029,8 +2033,9 @@ requires-dist = [
     { name = "pypdf", specifier = ">=6.9.2" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "pyyaml", specifier = ">=6.0.3" },
-    { name = "ragas", specifier = ">=0.4.3,<1.0" },
+    { name = "ragas", marker = "extra == 'evaluation'", specifier = ">=0.4.3,<1.0" },
 ]
+provides-extras = ["evaluation"]
 
 [[package]]
 name = "ragas"
