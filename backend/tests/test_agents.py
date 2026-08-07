@@ -7,6 +7,7 @@ from unittest.mock import Mock
 
 from app.agents.orchestrator import Orchestrator
 from app.agents.orchestrator.prompt import ORCHESTRATOR_SYSTEM_PROMPT
+from app.agents.orchestrator.responder import DirectResponse, MessageResponder
 from app.agents.orchestrator.router import MessageRouter, RoutingDecision
 from app.agents.rag_agent import RagAgent
 from app.agents.rag_agent.prompt import RAG_SYSTEM_PROMPT, build_rag_prompt
@@ -21,12 +22,14 @@ class FixedRouter:
         confidence: float = 0.95,
         conversation_action: str = "none",
         display_name: str | None = None,
+        urgent_message: str | None = None,
     ) -> None:
         self._decision = RoutingDecision(
             route=route,
             confidence=confidence,
             conversation_action=conversation_action,
             display_name=display_name,
+            urgent_message=urgent_message,
         )
 
     def decide(self, _prompt: str) -> RoutingDecision:
@@ -39,6 +42,16 @@ class ScriptedRouter:
 
     def decide(self, prompt: str) -> RoutingDecision:
         return self._decisions[prompt]
+
+
+class FixedDirectResponder:
+    def __init__(self, answer: str = "Generated direct response.") -> None:
+        self.answer = answer
+        self.calls: list[dict[str, object]] = []
+
+    def respond(self, **kwargs: object) -> str:
+        self.calls.append(kwargs)
+        return self.answer
 
 
 class RagAgentTests(unittest.TestCase):
@@ -61,7 +74,11 @@ class OrchestratorTests(unittest.TestCase):
         def unexpected_rag(_question: str):
             raise AssertionError("RAG must not run for a greeting")
 
-        response = Orchestrator(RagAgent(unexpected_rag), router=FixedRouter("basic_talk")).handle(
+        response = Orchestrator(
+            RagAgent(unexpected_rag),
+            router=FixedRouter("basic_talk"),
+            direct_responder=FixedDirectResponder(),
+        ).handle(
             MessageRequest(
                 prompt="Hi",
                 conversation_id="greeting-conversation",
@@ -76,6 +93,7 @@ class OrchestratorTests(unittest.TestCase):
         def unexpected_rag(_question: str):
             raise AssertionError("RAG must not run for a user introduction")
 
+        direct_responder = FixedDirectResponder()
         orchestrator = Orchestrator(
             RagAgent(unexpected_rag),
             router=ScriptedRouter(
@@ -106,6 +124,7 @@ class OrchestratorTests(unittest.TestCase):
                     ),
                 }
             ),
+            direct_responder=direct_responder,
         )
         response = orchestrator.handle(
             MessageRequest(
@@ -116,7 +135,7 @@ class OrchestratorTests(unittest.TestCase):
         )
 
         self.assertEqual(response.route, "direct_response")
-        self.assertIn("Nice to meet you, Hieu", response.answer)
+        self.assertEqual(response.answer, "Generated direct response.")
         self.assertEqual(orchestrator.get_state("introduction-conversation")["display_name"], "Hieu")
 
         greeting = orchestrator.handle(
@@ -127,7 +146,7 @@ class OrchestratorTests(unittest.TestCase):
             )
         )
 
-        self.assertIn("Hi, Hieu", greeting.answer)
+        self.assertEqual(greeting.answer, "Generated direct response.")
 
         name_recall = orchestrator.handle(
             MessageRequest(
@@ -137,7 +156,7 @@ class OrchestratorTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(name_recall.answer, "Your name is Hieu.")
+        self.assertEqual(name_recall.answer, "Generated direct response.")
 
         history_recall = orchestrator.handle(
             MessageRequest(
@@ -148,15 +167,17 @@ class OrchestratorTests(unittest.TestCase):
         )
 
         self.assertEqual(history_recall.route, "direct_response")
-        self.assertIn("i am hieu", history_recall.answer.casefold())
-        self.assertIn("What is my name?", history_recall.answer)
+        self.assertEqual(history_recall.answer, "Generated direct response.")
+        self.assertEqual(direct_responder.calls[-1]["conversation_action"], "recall_history")
 
     def test_basic_talk_without_an_eligible_agent_does_not_call_rag(self) -> None:
         def unexpected_rag(_question: str):
             raise AssertionError("RAG must not run for basic talk")
 
         response = Orchestrator(
-            RagAgent(unexpected_rag), router=FixedRouter("basic_talk")
+            RagAgent(unexpected_rag),
+            router=FixedRouter("basic_talk"),
+            direct_responder=FixedDirectResponder(),
         ).handle(
             MessageRequest(
                 prompt="How are you today?",
@@ -167,7 +188,7 @@ class OrchestratorTests(unittest.TestCase):
 
         self.assertEqual(response.route, "direct_response")
         self.assertEqual(response.citations, [])
-        self.assertIn("medical-reference assistant", response.answer)
+        self.assertEqual(response.answer, "Generated direct response.")
 
     def test_medical_information_request_still_uses_rag(self) -> None:
         calls: list[str] = []
@@ -187,11 +208,17 @@ class OrchestratorTests(unittest.TestCase):
         self.assertEqual(calls, ["What are the symptoms of dehydration?"])
         self.assertEqual(response.route, "rag")
 
-    def test_urgent_message_does_not_call_rag(self) -> None:
+    def test_llm_selected_urgent_message_does_not_call_rag(self) -> None:
         def unexpected_rag(_question: str):
             raise AssertionError("RAG must not run for urgent routing")
 
-        response = Orchestrator(RagAgent(unexpected_rag)).handle(
+        response = Orchestrator(
+            RagAgent(unexpected_rag),
+            router=FixedRouter(
+                "urgent_escalation",
+                urgent_message="Please seek immediate in-person care.",
+            ),
+        ).handle(
             MessageRequest(
                 prompt="I have difficulty breathing",
                 conversation_id="urgent-conversation",
@@ -266,6 +293,7 @@ class MessageRouterTests(unittest.TestCase):
             "confidence": 0.91,
             "conversation_action": "none",
             "display_name": None,
+            "urgent_message": None,
         }
         llm = Mock()
         llm.with_structured_output.return_value = structured_llm
@@ -280,10 +308,42 @@ class MessageRouterTests(unittest.TestCase):
                 confidence=0.91,
                 conversation_action="none",
                 display_name=None,
+                urgent_message=None,
             ),
         )
         loader.assert_called_once_with(temperature=0.0, max_tokens=96)
         llm.with_structured_output.assert_called_once_with(RoutingDecision)
+
+    def test_accepts_an_llm_selected_urgent_route(self) -> None:
+        structured_llm = Mock()
+        structured_llm.invoke.return_value = {
+            "route": "urgent_escalation",
+            "confidence": 0.96,
+            "conversation_action": "none",
+            "display_name": None,
+            "urgent_message": "Please seek immediate in-person care.",
+        }
+        llm = Mock()
+        llm.with_structured_output.return_value = structured_llm
+
+        decision = MessageRouter(llm_loader=Mock(return_value=llm)).decide("I need help now")
+
+        self.assertEqual(decision.route, "urgent_escalation")
+
+
+class MessageResponderTests(unittest.TestCase):
+    def test_uses_structured_output_for_direct_responses(self) -> None:
+        structured_llm = Mock()
+        structured_llm.invoke.return_value = {"answer": "Hello from MedChat."}
+        llm = Mock()
+        llm.with_structured_output.return_value = structured_llm
+
+        answer = MessageResponder(llm_loader=Mock(return_value=llm)).respond(
+            messages=[], conversation_action="none", display_name=None
+        )
+
+        self.assertEqual(answer, "Hello from MedChat.")
+        llm.with_structured_output.assert_called_once_with(DirectResponse)
 
     def test_falls_back_to_basic_talk_when_model_routing_fails(self) -> None:
         decision = MessageRouter(llm_loader=Mock(side_effect=RuntimeError("unavailable"))).decide(

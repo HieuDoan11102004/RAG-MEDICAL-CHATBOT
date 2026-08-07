@@ -26,10 +26,31 @@ class _ApiRouter:
         )
 
 
+class _FixedApiRouter:
+    def __init__(self, route: str, urgent_message: str | None = None) -> None:
+        self._decision = RoutingDecision(
+            route=route,
+            confidence=0.95,
+            conversation_action="none",
+            display_name=None,
+            urgent_message=urgent_message,
+        )
+
+    def decide(self, _prompt: str) -> RoutingDecision:
+        return self._decision
+
+
+class _FixedDirectResponder:
+    def respond(self, **_kwargs: object) -> str:
+        return "Generated direct response."
+
+
 class ChatApiTests(unittest.TestCase):
     def setUp(self) -> None:
         self.app = create_app(
-            allowed_origins={"http://localhost:5173"}, router=_ApiRouter()
+            allowed_origins={"http://localhost:5173"},
+            router=_ApiRouter(),
+            direct_responder=_FixedDirectResponder(),
         )
         self.client = self.app.test_client()
 
@@ -70,8 +91,16 @@ class ChatApiTests(unittest.TestCase):
         )
 
     @patch("app.application.answer_question")
-    def test_messages_routes_explicit_urgent_signal_without_rag(self, create_chain) -> None:
-        response = self.client.post("/api/messages", json={"prompt": "I have severe chest pain."})
+    def test_messages_routes_llm_selected_urgent_message_without_rag(self, create_chain) -> None:
+        app = create_app(
+            allowed_origins={"http://localhost:5173"},
+            router=_FixedApiRouter(
+                "urgent_escalation",
+                urgent_message="Please seek immediate in-person care.",
+            ),
+            direct_responder=_FixedDirectResponder(),
+        )
+        response = app.test_client().post("/api/messages", json={"prompt": "I need help now."})
 
         self.assertEqual(response.status_code, 200)
         payload = response.get_json()
@@ -87,7 +116,7 @@ class ChatApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["processing"], {"route": "direct_response"})
         self.assertEqual(response.get_json()["citations"], [])
-        self.assertIn("MedChat", response.get_json()["answer"])
+        self.assertEqual(response.get_json()["answer"], "Generated direct response.")
         create_chain.assert_not_called()
 
     def test_chat_rejects_blank_or_non_json_prompt(self) -> None:
