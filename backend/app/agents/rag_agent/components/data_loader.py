@@ -24,13 +24,13 @@ def process_and_store_pdfs():
 
         text_chunks = create_text_chunks(documents)
         logger.info(
-            "Created %s text chunks. Starting embedding and Qdrant indexing.",
+            "Created %s text chunks. Starting embedding and FAISS indexing.",
             len(text_chunks),
         )
 
         save_vector_store(text_chunks)
 
-        logger.info("Qdrant collection created successfully.")
+        logger.info("Vector store created and saved successfully.")
     except Exception as e:
         error_message = CustomException(f"Error processing and storing PDFs: {str(e)}")
         logger.error(str(error_message))

@@ -21,8 +21,7 @@ from app.config.config import (
 DEFAULT_CONFIG = """\
 openai_model: gpt-4.1-mini
 openai_embedding_model: text-embedding-3-small
-qdrant_url: http://localhost:6333
-qdrant_collection: medical_knowledge
+db_faiss_path: vectorstore/db_faiss
 data_path: data
 chunk_size: 500
 chunk_overlap: 50
@@ -73,8 +72,7 @@ class ConfigurationLoaderTests(unittest.TestCase):
             {
                 "openai_model",
                 "openai_embedding_model",
-                "qdrant_url",
-                "qdrant_collection",
+                "db_faiss_path",
                 "data_path",
                 "chunk_size",
                 "chunk_overlap",
@@ -89,8 +87,7 @@ class ConfigurationLoaderTests(unittest.TestCase):
         self.assertEqual(settings.openai_model, "gpt-4.1-mini")
         self.assertEqual(settings.openai_embedding_model, "text-embedding-3-small")
         self.assertEqual(settings.data_path, PROJECT_ROOT / "data")
-        self.assertEqual(settings.qdrant_url, "http://localhost:6333")
-        self.assertEqual(settings.qdrant_collection, "medical_knowledge")
+        self.assertEqual(settings.db_faiss_path, PROJECT_ROOT / "vectorstore" / "db_faiss")
         self.assertEqual(settings.chunk_size, 500)
         self.assertEqual(settings.chunk_overlap, 50)
 
@@ -99,8 +96,7 @@ class ConfigurationLoaderTests(unittest.TestCase):
             "OPENAI_MODEL": "dotenv-chat",
             "OPENAI_EMBEDDING_MODEL": "dotenv-embedding",
             "DATA_PATH": "dotenv-data",
-            "QDRANT_URL": "https://dotenv-qdrant.example.com",
-            "QDRANT_COLLECTION": "dotenv-collection",
+            "DB_FAISS_PATH": "dotenv-index",
             "CHUNK_SIZE": "600",
             "CHUNK_OVERLAP": "60",
         }
@@ -110,8 +106,7 @@ class ConfigurationLoaderTests(unittest.TestCase):
         self.assertEqual(settings.openai_model, "dotenv-chat")
         self.assertEqual(settings.openai_embedding_model, "dotenv-embedding")
         self.assertEqual(settings.data_path, PROJECT_ROOT / "dotenv-data")
-        self.assertEqual(settings.qdrant_url, "https://dotenv-qdrant.example.com")
-        self.assertEqual(settings.qdrant_collection, "dotenv-collection")
+        self.assertEqual(settings.db_faiss_path, PROJECT_ROOT / "dotenv-index")
         self.assertEqual(settings.chunk_size, 600)
         self.assertEqual(settings.chunk_overlap, 60)
         self.assertNotIn("OPENAI_MODEL", os.environ)
@@ -126,8 +121,7 @@ class ConfigurationLoaderTests(unittest.TestCase):
             "OPENAI_MODEL": "dotenv-chat",
             "OPENAI_EMBEDDING_MODEL": "dotenv-embedding",
             "DATA_PATH": "dotenv-data",
-            "QDRANT_URL": "https://dotenv-qdrant.example.com",
-            "QDRANT_COLLECTION": "dotenv-collection",
+            "DB_FAISS_PATH": "dotenv-index",
             "CHUNK_SIZE": "600",
             "CHUNK_OVERLAP": "60",
         }
@@ -135,8 +129,7 @@ class ConfigurationLoaderTests(unittest.TestCase):
             "OPENAI_MODEL": "process-chat",
             "OPENAI_EMBEDDING_MODEL": "process-embedding",
             "DATA_PATH": "process-data",
-            "QDRANT_URL": "https://process-qdrant.example.com",
-            "QDRANT_COLLECTION": "process-collection",
+            "DB_FAISS_PATH": "process-index",
             "CHUNK_SIZE": "700",
             "CHUNK_OVERLAP": "70",
         }
@@ -146,8 +139,7 @@ class ConfigurationLoaderTests(unittest.TestCase):
         self.assertEqual(settings.openai_model, "process-chat")
         self.assertEqual(settings.openai_embedding_model, "process-embedding")
         self.assertEqual(settings.data_path, PROJECT_ROOT / "process-data")
-        self.assertEqual(settings.qdrant_url, "https://process-qdrant.example.com")
-        self.assertEqual(settings.qdrant_collection, "process-collection")
+        self.assertEqual(settings.db_faiss_path, PROJECT_ROOT / "process-index")
         self.assertEqual(settings.chunk_size, 700)
         self.assertEqual(settings.chunk_overlap, 70)
 
@@ -162,12 +154,15 @@ class ConfigurationLoaderTests(unittest.TestCase):
             os.chdir(previous_directory)
 
         self.assertEqual(relative_settings.data_path, PROJECT_ROOT / "data")
+        self.assertEqual(relative_settings.db_faiss_path, PROJECT_ROOT / "vectorstore" / "db_faiss")
+
         absolute_data = self.directory / "absolute-data"
+        absolute_index = self.directory / "absolute-index"
         absolute_settings = self.load(
-            {"DATA_PATH": str(absolute_data), "QDRANT_URL": "https://qdrant.example.com/"}
+            {"DATA_PATH": str(absolute_data), "DB_FAISS_PATH": str(absolute_index)}
         )
         self.assertEqual(absolute_settings.data_path, absolute_data)
-        self.assertEqual(absolute_settings.qdrant_url, "https://qdrant.example.com")
+        self.assertEqual(absolute_settings.db_faiss_path, absolute_index)
 
     def test_invalid_yaml_documents_raise_configuration_errors(self) -> None:
         for content, field in (
@@ -195,7 +190,7 @@ class ConfigurationLoaderTests(unittest.TestCase):
         invalid_values = {
             "openai_model": "42",
             "openai_embedding_model": "42",
-            "qdrant_url": "42",
+            "db_faiss_path": "42",
             "data_path": "42",
             "chunk_size": '"500"',
             "chunk_overlap": '"50"',
@@ -208,7 +203,7 @@ class ConfigurationLoaderTests(unittest.TestCase):
                 )
                 self.assert_configuration_error(content, field)
 
-        for field in ("openai_model", "openai_embedding_model", "qdrant_url", "qdrant_collection", "data_path"):
+        for field in ("openai_model", "openai_embedding_model", "db_faiss_path", "data_path"):
             with self.subTest(blank_field=field):
                 content = DEFAULT_CONFIG.replace(
                     next(line for line in DEFAULT_CONFIG.splitlines() if line.startswith(f"{field}:")),
@@ -233,9 +228,6 @@ class ConfigurationLoaderTests(unittest.TestCase):
 
         self.assert_configuration_error(
             DEFAULT_CONFIG.replace("chunk_overlap: 50", "chunk_overlap: 500"), "chunk_overlap"
-        )
-        self.assert_configuration_error(
-            DEFAULT_CONFIG.replace("qdrant_url: http://localhost:6333", "qdrant_url: qdrant"), "qdrant_url"
         )
         for environ in ({"CHUNK_SIZE": "not-an-integer"}, {"CHUNK_OVERLAP": "-1"}):
             with self.subTest(environ=environ):

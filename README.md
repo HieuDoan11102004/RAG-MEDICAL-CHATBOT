@@ -9,13 +9,13 @@ A medical-reference chatbot built with retrieval-augmented generation (RAG). The
 The applications are intentionally independent:
 
 - `frontend/` is a Vite, React, and TypeScript single-page application. It keeps the active conversation for the current browser session and calls the backend JSON API.
-- `backend/` is a Flask JSON API containing the RAG pipeline, configuration, and source PDFs. Qdrant stores the derived vector index. It does not serve the React application.
+- `backend/` is a Flask JSON API containing the RAG pipeline, configuration, source PDFs, and FAISS vector index. It does not serve the React application.
 
-The RAG flow is: PDF documents are split into overlapping chunks, OpenAI embeddings are stored in a self-hosted Qdrant collection, and each prompt retrieves four relevant passages before the configured chat model returns an answer cited to those passages. Citations use the data-source name and its page number, never the source path or URL.
+The RAG flow is: PDF documents are split into overlapping chunks, OpenAI embeddings are stored in a FAISS index, and each prompt retrieves four relevant passages before the configured chat model returns an answer cited to those passages. Citations use the data-source name and its page number, never the source path or URL.
 
 ## Data
 
-`backend/data/The_GALE_ENCYCLOPEDIA_of_MEDICINE_SECOND.pdf` is the initial 759-page medical reference source. Place additional PDFs in `backend/data/`, then rebuild the Qdrant collection after changing PDFs, chunking settings, or the embedding model.
+`backend/data/The_GALE_ENCYCLOPEDIA_of_MEDICINE_SECOND.pdf` is the initial 759-page medical reference source. Place additional PDFs in `backend/data/`, then rebuild the index. `backend/vectorstore/db_faiss/` contains derived FAISS data and must be regenerated after changing PDFs, chunking settings, or the embedding model.
 
 Reference material can be incomplete or outdated and must not be used as the sole basis for individual medical decisions.
 
@@ -71,7 +71,7 @@ Open the Vite URL shown in the terminal (normally <http://localhost:5173>). Duri
 
 ## Configuration
 
-`backend/config.yaml` contains the seven non-secret RAG defaults: `openai_model`, `openai_embedding_model`, `qdrant_url`, `qdrant_collection`, `data_path`, `chunk_size`, and `chunk_overlap`. Settings are selected in this order: process environment, `backend/.env`, then YAML. Relative paths resolve from `backend/`. Set `QDRANT_API_KEY` in `backend/.env`; it is intentionally not accepted in YAML.
+`backend/config.yaml` contains the six non-secret RAG defaults: `openai_model`, `openai_embedding_model`, `db_faiss_path`, `data_path`, `chunk_size`, and `chunk_overlap`. Settings are selected in this order: process environment, `backend/.env`, then YAML. Relative paths resolve from `backend/`.
 
 The frontend uses `VITE_API_BASE_URL` to select its API origin. Leave it unset for the local Vite proxy; set it to the deployed backend URL when frontend and API are served from different origins:
 
@@ -123,15 +123,6 @@ Each chat turn is traced as `medical-chat-turn` and grouped by a hashed `convers
 
 ## Docker
 
-For the backend plus self-hosted Qdrant stack, add a strong `QDRANT_API_KEY` to `backend/.env`, then run from the repository root:
-
-```bash
-docker compose --env-file backend/.env up --build -d
-docker compose --env-file backend/.env exec backend uv run python -m app.agents.rag_agent.components.data_loader
-```
-
-Qdrant is private to the Compose network and persists in the named `qdrant_storage` Docker volume. Rebuild the collection after updating source PDFs, chunk settings, or the embedding model. To intentionally discard the collection, stop the stack with `docker compose down -v` and rebuild it; this deletes all Qdrant data.
-
 Build each application from its own directory context:
 
 ```bash
@@ -163,6 +154,7 @@ backend/
   app/                    Flask API and RAG pipeline
   config.yaml             Non-secret backend defaults
   data/                   Source PDF documents
+  vectorstore/db_faiss/   Derived FAISS index
   tests/                  Backend tests
   Dockerfile              Backend image
 frontend/
