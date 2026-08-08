@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import yaml
 from dotenv import dotenv_values
@@ -19,7 +20,8 @@ _CONFIG_KEYS = frozenset(
     {
         "openai_model",
         "openai_embedding_model",
-        "db_faiss_path",
+        "qdrant_url",
+        "qdrant_collection",
         "data_path",
         "chunk_size",
         "chunk_overlap",
@@ -28,7 +30,8 @@ _CONFIG_KEYS = frozenset(
 _ENVIRONMENT_KEYS = {
     "openai_model": "OPENAI_MODEL",
     "openai_embedding_model": "OPENAI_EMBEDDING_MODEL",
-    "db_faiss_path": "DB_FAISS_PATH",
+    "qdrant_url": "QDRANT_URL",
+    "qdrant_collection": "QDRANT_COLLECTION",
     "data_path": "DATA_PATH",
     "chunk_size": "CHUNK_SIZE",
     "chunk_overlap": "CHUNK_OVERLAP",
@@ -77,7 +80,8 @@ _UniqueKeySafeLoader.add_constructor(
 class Settings:
     openai_model: str
     openai_embedding_model: str
-    db_faiss_path: Path
+    qdrant_url: str
+    qdrant_collection: str
     data_path: Path
     chunk_size: int
     chunk_overlap: int
@@ -167,6 +171,14 @@ def _project_path(field: str, value: Any) -> Path:
     return path if path.is_absolute() else PROJECT_ROOT / path
 
 
+def _http_url(field: str, value: Any) -> str:
+    url = _required_string(field, value).rstrip("/")
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ConfigurationError(f"{field} must be an absolute HTTP(S) URL.")
+    return url
+
+
 def load_settings(
     config_path: str | Path | None = None,
     dotenv_path: str | Path | None = None,
@@ -204,7 +216,8 @@ def load_settings(
         openai_embedding_model=_required_string(
             "openai_embedding_model", values["openai_embedding_model"]
         ),
-        db_faiss_path=_project_path("db_faiss_path", values["db_faiss_path"]),
+        qdrant_url=_http_url("qdrant_url", values["qdrant_url"]),
+        qdrant_collection=_required_string("qdrant_collection", values["qdrant_collection"]),
         data_path=_project_path("data_path", values["data_path"]),
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
@@ -224,12 +237,26 @@ def get_openai_api_key(
     return value.strip() if isinstance(value, str) and value.strip() else None
 
 
+def get_qdrant_api_key(
+    environ: Mapping[str, str] | None = None,
+    dotenv_path: str | Path | None = None,
+) -> str | None:
+    """Return the Qdrant API key from environment or dotenv without mutation."""
+    source_environ = os.environ if environ is None else environ
+    value = source_environ.get("QDRANT_API_KEY")
+    if value is None:
+        path = Path(dotenv_path) if dotenv_path is not None else PROJECT_ROOT / ".env"
+        value = _dotenv_values(path).get("QDRANT_API_KEY")
+    return value.strip() if isinstance(value, str) and value.strip() else None
+
+
 settings = load_settings()
 
 # Compatibility exports for existing component imports.
 OPENAI_MODEL = settings.openai_model
 OPENAI_EMBEDDING_MODEL = settings.openai_embedding_model
-DB_FAISS_PATH = str(settings.db_faiss_path)
+QDRANT_URL = settings.qdrant_url
+QDRANT_COLLECTION = settings.qdrant_collection
 DATA_PATH = str(settings.data_path)
 CHUNK_SIZE = settings.chunk_size
 CHUNK_OVERLAP = settings.chunk_overlap

@@ -1,6 +1,7 @@
 openai_model: gpt-4.1-mini
 openai_embedding_model: text-embedding-3-small
-db_faiss_path: vectorstore/db_faiss
+qdrant_url: http://localhost:6333
+qdrant_collection: medical_knowledge
 data_path: data
 chunk_size: 500
 chunk_overlap: 50
