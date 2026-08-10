@@ -7,12 +7,26 @@ from collections.abc import Iterable
 
 from flask import Flask, jsonify, request
 
+
+def _load_env():
+    """Load .env file when not in testing mode."""
+    if os.getenv("FLASK_ENV") != "testing":
+        from pathlib import Path
+        from dotenv import load_dotenv
+        load_dotenv(Path(__file__).parent.parent / ".env")
+
+
+# Load .env before other imports that might need it
+_load_env()
+
 from .agents.orchestrator import Orchestrator
 from .agents.orchestrator.responder import DirectResponder
 from .agents.orchestrator.router import Router
 from .agents.rag_agent import RagAgent
 from .agents.rag_agent.components.retriever import answer_question
 from .api.schemas import RequestValidationError, parse_message_request
+from .auth import create_auth_blueprint, get_session_from_token
+from .domain.models import MessageRequest
 
 
 def _allowed_origins(raw_origins: str | None = None) -> frozenset[str]:
@@ -30,6 +44,24 @@ def create_app(
     """Create the stateless API application."""
     app = Flask(__name__)
     origins = frozenset(allowed_origins) if allowed_origins is not None else _allowed_origins()
+
+    # Register auth routes
+    _, auth_routes = create_auth_blueprint()
+    for method, path, handler in auth_routes:
+        methods = [method, "OPTIONS"]
+        if method == "GET":
+            app.add_url_rule(path, handler.__name__, handler, methods=methods)
+        elif method == "POST":
+            app.add_url_rule(path, handler.__name__, handler, methods=methods)
+        elif method == "DELETE":
+            app.add_url_rule(path, handler.__name__, handler, methods=methods)
+
+    # Handle OPTIONS preflight before route handlers run
+    @app.before_request
+    def handle_options_preflight():
+        if request.method == "OPTIONS":
+            return ("", 204)
+
     orchestrator = Orchestrator(
         RagAgent(answer_fn=lambda prompt: answer_question(prompt)),
         router=router,
@@ -39,16 +71,29 @@ def create_app(
     @app.after_request
     def add_cors_headers(response):
         origin = request.headers.get("Origin")
-        if origin in origins:
+        # Always add CORS headers for allowed origins (including OPTIONS preflight)
+        if origin and origin in origins:
             response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Vary"] = "Origin"
         return response
 
     @app.get("/api/health")
     def health():
         return jsonify({"status": "ok"})
+
+    def _get_user_id() -> str:
+        """Get user ID from auth session or return anonymous."""
+        token = request.cookies.get("better-auth.session_token")
+        if not token:
+            token = request.headers.get("Authorization", "").replace("Bearer ", "")
+        if token:
+            session_data = get_session_from_token(token)
+            if session_data:
+                return session_data["user"]["id"]
+        return "anonymous"
 
     def _handle_message(*, legacy_response: bool):
         if request.method == "OPTIONS":
@@ -59,9 +104,22 @@ def create_app(
         except RequestValidationError as exc:
             return jsonify({"error": str(exc)}), 400
 
+        # Use authenticated user ID if available
+        user_id = _get_user_id()
+        message = MessageRequest(
+            prompt=message.prompt,
+            conversation_id=message.conversation_id,
+            user_id=user_id,
+            email=message.email,
+        )
+
         try:
             response = orchestrator.handle(message)
-            return jsonify(response.as_legacy_dict() if legacy_response else response.as_dict())
+            result = response.as_legacy_dict() if legacy_response else response.as_dict()
+            # Include user info in response for authenticated users
+            if user_id != "anonymous":
+                result["user"] = {"id": user_id}
+            return jsonify(result)
         except Exception:
             app.logger.exception("Unable to process chat request")
             return jsonify({"error": "Unable to process your request."}), 500

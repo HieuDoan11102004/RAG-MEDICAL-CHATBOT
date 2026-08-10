@@ -17,6 +17,8 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "langgraph>=1.0.10",
     "email-validator>=2.2.0",
+    "better-auth>=0.0.1b13",
+    "bcrypt>=5.0.0",
 ]
 
 [project.optional-dependencies]
@@ -26,3 +28,8 @@ evaluation = [
 
 [tool.vercel]
 entrypoint = "app.application:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

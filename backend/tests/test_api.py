@@ -162,7 +162,7 @@ class ChatApiTests(unittest.TestCase):
 
         self.assertEqual(allowed.status_code, 204)
         self.assertEqual(allowed.headers.get("Access-Control-Allow-Origin"), "http://localhost:5173")
-        self.assertEqual(allowed.headers.get("Access-Control-Allow-Methods"), "POST, OPTIONS")
+        self.assertEqual(allowed.headers.get("Access-Control-Allow-Methods"), "GET, POST, DELETE, OPTIONS")
         self.assertIsNone(denied.headers.get("Access-Control-Allow-Origin"))
 
 

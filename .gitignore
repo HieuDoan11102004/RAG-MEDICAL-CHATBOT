@@ -1,10 +1,12 @@
 # Environment and local tooling
 .env
 .omx/
+.omc/
 .idea/
 venv/
 .venv/
 backend/.venv/
+backend/data/auth.db
 
 # Python caches, logs, and test artifacts
 __pycache__/

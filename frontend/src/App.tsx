@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { sendPrompt, type Citation } from "./api/chat";
+import { AuthModal } from "./components/AuthModal";
 import { Composer } from "./components/Composer";
 import { Icon } from "./components/Icon";
 import { MessageList, type Message } from "./components/MessageList";
 import { Sidebar } from "./components/Sidebar";
+import { useAuth } from "./hooks/useAuth";
 import "./styles.css";
 
 let nextMessageId = 0;
@@ -42,7 +44,9 @@ function loadMessages(): Message[] {
 export default function App() {
   const [messages, setMessages] = useState<Message[]>(loadMessages);
   const [isSending, setIsSending] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const conversationId = useRef(loadConversationId());
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     window.sessionStorage.setItem(sessionStorageKey, JSON.stringify(messages));
@@ -74,6 +78,17 @@ export default function App() {
     window.sessionStorage.removeItem(sessionStorageKey);
   }
 
+  function handleComposerFocus() {
+    if (!user && !loading) {
+      setShowAuthModal(true);
+    }
+  }
+
+  // Show loading state while checking auth
+  if (loading) {
+    return <div className="app-shell loading">Loading...</div>;
+  }
+
   return <div className="app-shell">
     <Sidebar onNewChat={handleNewChat} />
     <main className="chat-panel">
@@ -81,12 +96,21 @@ export default function App() {
         <button type="button" className="mobile-brand" aria-label="MedChat navigation"><Icon name="bot" /></button>
         <div className="conversation-title"><strong>Medical assistant</strong><span><i /> Online</span></div>
         <div className="topbar-actions">
+          {!user && (
+            <button type="button" className="header-button sign-in-btn" onClick={() => setShowAuthModal(true)}>
+              Sign In
+            </button>
+          )}
           <button type="button" className="header-button" aria-label="Search conversations (not available yet)"><Icon name="search" /></button>
           <button type="button" className="header-button" aria-label="Conversation options (not available yet)"><Icon name="dots" /></button>
         </div>
       </header>
       <div className="conversation"><MessageList messages={messages} loading={isSending} /></div>
-      <div className="composer-area"><Composer onSend={handleSend} disabled={isSending} /><p>MedChat can make mistakes. Check important information with a healthcare professional.</p></div>
+      <div className="composer-area">
+        <Composer onSend={handleSend} disabled={isSending} onFocus={handleComposerFocus} />
+        <p>MedChat can make mistakes. Check important information with a healthcare professional.</p>
+      </div>
     </main>
+    {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
   </div>;
 }

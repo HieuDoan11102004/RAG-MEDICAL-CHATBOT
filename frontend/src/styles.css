@@ -8,6 +8,7 @@ button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 button:focus-visible, input:focus-visible { outline: 3px solid #8b80ff; outline-offset: 2px; }
 .app-shell { display: flex; height: 100dvh; min-height: 580px; overflow: hidden; }
+.app-shell.loading { align-items: center; justify-content: center; color: #8a8ea1; font-size: 14px; }
 .sidebar { width: 278px; flex: 0 0 278px; padding: 30px 17px 18px; color: #e9ebff; background: #181d32; display: flex; flex-direction: column; }
 .brand { display: flex; align-items: center; gap: 11px; margin: 0 11px 37px; font-family: Manrope, sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -.4px; }
 .brand-mark, .empty-logo { display: grid; place-items: center; color: white; background: linear-gradient(145deg, #a497ff, #6558dd); border-radius: 10px; }
@@ -20,5 +21,28 @@ button:focus-visible, input:focus-visible { outline: 3px solid #8b80ff; outline-
 .citations { display: inline-flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0; }.citation { display: inline-block; padding: 1px 6px; color: #5d54b8; border-radius: 999px; background: #eeecff; font-size: 11px; font-weight: 600; line-height: 1.5; }
 .empty-state { height: 100%; padding: 24px; display: grid; place-content: center; justify-items: center; text-align: center; }.empty-logo { width: 57px; height: 57px; margin-bottom: 22px; border-radius: 17px; box-shadow: 0 10px 21px #776ae52b; }.empty-logo svg { width: 31px; }.empty-state h1 { margin: 0 0 10px; color: #272a3d; font-family: Manrope, sans-serif; font-size: clamp(24px, 3vw, 30px); letter-spacing: -.8px; }.empty-state p { max-width: 380px; margin: 0; color: #8a8ea1; font-size: 14px; line-height: 1.6; }
 .composer-area { padding: 16px 43px 25px; background: linear-gradient(transparent, #f9faff 34%); }.composer { max-width: 760px; height: 60px; margin: 0 auto; padding: 0 8px 0 13px; display: flex; align-items: center; gap: 6px; border: 1px solid #e0e2ed; border-radius: 13px; background: #fff; box-shadow: 0 8px 26px #1e244414; }.composer:focus-within { border-color: #8b80ec; box-shadow: 0 0 0 3px #8b80ec22; }.composer input { min-width: 0; flex: 1; height: 100%; border: 0; outline: 0; color: #303348; background: transparent; font-size: 14px; }.composer input::placeholder { color: #a6a9b8; }.composer-icon { width: 33px; height: 33px; border-radius: 7px; }.composer-icon svg { width: 19px; }.send-button { width: 43px; height: 43px; display: grid; place-items: center; color: white; border: 0; border-radius: 10px; background: #7166dd; transition: background .15s, transform .15s; }.send-button:hover:not(:disabled) { background: #5f55c8; transform: translateY(-1px); }.send-button:disabled { color: #a9a5e0; background: #e5e3f7; }.send-button svg { width: 19px; }.composer-area p { margin: 13px 0 0; color: #a3a6b4; text-align: center; font-size: 10px; }.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* Auth Modal */
+.auth-modal-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); }
+.auth-modal { position: relative; width: 100%; max-width: 400px; margin: 16px; padding: 32px; background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2); }
+.auth-modal-close { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; background: transparent; color: #8a8ea1; font-size: 24px; cursor: pointer; border-radius: 8px; }
+.auth-modal-close:hover { background: #f0effb; color: #6558dd; }
+.auth-modal h2 { margin: 0 0 8px; color: #272a3d; font-family: Manrope, sans-serif; font-size: 24px; letter-spacing: -0.5px; }
+.auth-subtitle { margin: 0 0 24px; color: #8a8ea1; font-size: 14px; }
+.auth-field { margin-bottom: 16px; }
+.auth-field label { display: block; margin-bottom: 6px; color: #35384b; font-size: 13px; font-weight: 500; }
+.auth-field input { width: 100%; height: 44px; padding: 0 14px; border: 1px solid #e0e2ed; border-radius: 8px; font-size: 14px; color: #303348; background: #fff; transition: border-color 0.15s, box-shadow 0.15s; }
+.auth-field input:focus { border-color: #8b80ec; box-shadow: 0 0 0 3px #8b80ec22; outline: none; }
+.auth-field input::placeholder { color: #a6a9b8; }
+.auth-error { margin-bottom: 16px; padding: 12px 14px; color: #a03d43; background: #fff6f6; border: 1px solid #f5d1d3; border-radius: 8px; font-size: 13px; }
+.auth-submit { width: 100%; height: 48px; border: none; border-radius: 10px; background: #7166dd; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s, transform 0.15s; }
+.auth-submit:hover:not(:disabled) { background: #5f55c8; transform: translateY(-1px); }
+.auth-submit:disabled { background: #e5e3f7; color: #a9a5e0; cursor: not-allowed; transform: none; }
+.auth-toggle { margin-top: 20px; text-align: center; color: #8a8ea1; font-size: 13px; }
+.auth-toggle button { color: #6558dd; background: none; border: none; font-weight: 500; cursor: pointer; }
+.auth-toggle button:hover { text-decoration: underline; }
+.sign-out-btn { margin-left: auto; padding: 4px; background: transparent; border: none; cursor: pointer; }
+.sign-in-btn { width: auto !important; padding: 0 16px !important; font-size: 13px !important; color: #7166dd !important; background: #f0effb !important; }
+.sign-in-btn:hover { background: #e5e3f7 !important; }
 @media (max-width: 760px) { .app-shell { min-height: 500px; }.sidebar { display: none; }.topbar { height: 68px; flex-basis: 68px; padding: 0 18px; }.mobile-brand { width: 33px; height: 33px; margin-right: 12px; display: grid; place-items: center; color: #fff; border: 0; border-radius: 10px; background: #7166dd; }.mobile-brand svg { width: 20px; }.topbar-actions { gap: 4px; }.header-button { width: 35px; }.message-list { width: calc(100% - 30px); margin: 26px auto; gap: 20px; }.message-content { max-width: 82%; }.message-content p { padding: 11px 13px; font-size: 13px; }.composer-area { padding: 11px 15px 18px; }.composer { height: 54px; }.composer-icon:first-of-type { display: none; }.composer-area p { line-height: 1.35; } }
 @media (max-width: 390px) { .topbar-actions .header-button:first-child { display: none; }.conversation-title strong { font-size: 14px; }.message-list { width: calc(100% - 22px); }.message-content { max-width: 85%; }.message-action { display: none; } }
