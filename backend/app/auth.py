@@ -15,7 +15,9 @@ import bcrypt
 from flask import Flask, Response, g, jsonify, request
 
 # Path to SQLite database
-AUTH_DB_PATH = Path(__file__).parent.parent / "data" / "auth.db"
+# Use /tmp for Vercel serverless compatibility (ephemeral filesystem)
+# In production with multiple instances, consider Turso or D1 instead
+AUTH_DB_PATH = Path("/tmp/auth.db")
 
 
 def get_db() -> sqlite3.Connection:
