@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Icon } from "./Icon";
 import { useAuth } from "../hooks/useAuth";
 import { listConversations, deleteConversation, type Conversation } from "../api/conversations";
@@ -7,22 +7,16 @@ interface SidebarProps {
   onNewChat: () => void;
   onSelectConversation: (id: string) => void;
   activeConversationId: string | null;
+  refreshTrigger?: number;
 }
 
-export function Sidebar({ onNewChat, onSelectConversation, activeConversationId }: SidebarProps) {
+export function Sidebar({ onNewChat, onSelectConversation, activeConversationId, refreshTrigger = 0 }: SidebarProps) {
   const { user, signOut } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadConversations();
-    } else {
-      setConversations([]);
-    }
-  }, [user]);
-
-  async function loadConversations() {
+  const loadConversations = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     try {
       const convs = await listConversations();
@@ -32,7 +26,22 @@ export function Sidebar({ onNewChat, onSelectConversation, activeConversationId 
     } finally {
       setLoading(false);
     }
-  }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadConversations();
+    } else {
+      setConversations([]);
+    }
+  }, [user, loadConversations]);
+
+  // Refresh when trigger changes (new conversation created)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      loadConversations();
+    }
+  }, [refreshTrigger, loadConversations]);
 
   async function handleDeleteConversation(e: React.MouseEvent, id: string) {
     e.stopPropagation();

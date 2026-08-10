@@ -47,9 +47,11 @@ export default function App() {
   const [isSending, setIsSending] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [refreshConversations, setRefreshConversations] = useState(0);
   const conversationIdRef = useRef(loadConversationId());
   const { user, loading } = useAuth();
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hasSentMessage, setHasSentMessage] = useState(false); // Track if user has sent any message
 
   // Save messages to session storage
   useEffect(() => {
@@ -58,7 +60,8 @@ export default function App() {
 
   // Auto-save conversation when messages change (debounced)
   useEffect(() => {
-    if (!user || messages.length === 0) return;
+    // Only save if user has sent a message in this session
+    if (!user || messages.length === 0 || !hasSentMessage) return;
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -75,6 +78,7 @@ export default function App() {
         .then((result) => {
           if (!activeConversationId && result.id) {
             setActiveConversationId(result.id);
+            setRefreshConversations((prev) => prev + 1); // Trigger sidebar refresh
           }
         })
         .catch(() => {
@@ -87,10 +91,11 @@ export default function App() {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [messages, user, activeConversationId]);
+  }, [messages, user, activeConversationId, hasSentMessage]);
 
   async function handleSend(prompt: string) {
     const requestConversationId = conversationIdRef.current;
+    setHasSentMessage(true); // Mark that user sent a message
     setMessages((current) => [...current, createMessage("user", prompt)]);
     setIsSending(true);
     try {
@@ -154,6 +159,7 @@ export default function App() {
       onNewChat={handleNewChat}
       onSelectConversation={handleSelectConversation}
       activeConversationId={activeConversationId}
+      refreshTrigger={refreshConversations}
     />
     <main className="chat-panel">
       <header className="topbar">
