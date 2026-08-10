@@ -289,7 +289,8 @@ def create_auth_blueprint(base_url: str = "/api/auth") -> tuple[Flask, list[tupl
                 "better-auth.session_token",
                 session["token"],
                 httponly=True,
-                samesite="lax",
+                samesite="none",
+                secure=True,
                 max_age=30 * 24 * 60 * 60  # 30 days
             )
             return response
@@ -379,7 +380,8 @@ def create_auth_blueprint(base_url: str = "/api/auth") -> tuple[Flask, list[tupl
                 "better-auth.session_token",
                 session["token"],
                 httponly=True,
-                samesite="lax",
+                samesite="none",
+                secure=True,
                 max_age=max_age
             )
             return response
@@ -397,7 +399,11 @@ def create_auth_blueprint(base_url: str = "/api/auth") -> tuple[Flask, list[tupl
             delete_session(token)
 
         response = jsonify({"status": True})
-        response.delete_cookie("better-auth.session_token")
+        response.delete_cookie(
+            "better-auth.session_token",
+            samesite="none",
+            secure=True
+        )
         return response
 
     def get_session():
