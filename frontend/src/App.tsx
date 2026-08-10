@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { sendPrompt, type Citation } from "./api/chat";
+import { getConversation, saveConversation, type ConversationMessage } from "./api/conversations";
 import { AuthModal } from "./components/AuthModal";
 import { Composer } from "./components/Composer";
 import { Icon } from "./components/Icon";
@@ -45,37 +46,96 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>(loadMessages);
   const [isSending, setIsSending] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const conversationId = useRef(loadConversationId());
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const conversationIdRef = useRef(loadConversationId());
   const { user, loading } = useAuth();
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Save messages to session storage
   useEffect(() => {
     window.sessionStorage.setItem(sessionStorageKey, JSON.stringify(messages));
   }, [messages]);
 
+  // Auto-save conversation when messages change (debounced)
+  useEffect(() => {
+    if (!user || messages.length === 0) return;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      const convMessages: ConversationMessage[] = messages.map((m) => ({
+        role: m.role as "user" | "assistant" | "error",
+        content: m.content,
+        citations: m.citations,
+      }));
+
+      saveConversation(activeConversationId, "", convMessages)
+        .then((result) => {
+          if (!activeConversationId && result.id) {
+            setActiveConversationId(result.id);
+          }
+        })
+        .catch(() => {
+          // Silently fail - saves are optional
+        });
+    }, 1000); // Save 1 second after last message change
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [messages, user, activeConversationId]);
+
   async function handleSend(prompt: string) {
-    const requestConversationId = conversationId.current;
+    const requestConversationId = conversationIdRef.current;
     setMessages((current) => [...current, createMessage("user", prompt)]);
     setIsSending(true);
     try {
       const { answer, citations } = await sendPrompt(prompt, requestConversationId);
-      if (conversationId.current === requestConversationId) {
+      if (conversationIdRef.current === requestConversationId) {
         setMessages((current) => [...current, createMessage("assistant", answer, citations)]);
       }
     } catch (error) {
       const content = error instanceof Error ? error.message : "Unable to reach the medical assistant.";
-      if (conversationId.current === requestConversationId) {
+      if (conversationIdRef.current === requestConversationId) {
         setMessages((current) => [...current, createMessage("error", content)]);
       }
     } finally {
-      if (conversationId.current === requestConversationId) setIsSending(false);
+      if (conversationIdRef.current === requestConversationId) setIsSending(false);
     }
   }
 
   function handleNewChat() {
-    conversationId.current = createConversationId();
+    conversationIdRef.current = createConversationId();
+    setActiveConversationId(null);
     setIsSending(false);
     setMessages([]);
     window.sessionStorage.removeItem(sessionStorageKey);
+  }
+
+  async function handleSelectConversation(id: string) {
+    if (!user) return;
+
+    try {
+      const conversation = await getConversation(id);
+      const loadedMessages: Message[] = conversation.messages.map((m, i) => ({
+        id: `message-${Date.now()}-${++nextMessageId}-${i}`,
+        role: m.role,
+        content: m.content,
+        citations: m.citations,
+      }));
+
+      conversationIdRef.current = id;
+      setActiveConversationId(id);
+      setMessages(loadedMessages);
+      window.sessionStorage.setItem(sessionStorageKey, JSON.stringify(loadedMessages));
+    } catch {
+      // If load fails, just start new chat
+      handleNewChat();
+    }
   }
 
   function handleComposerFocus() {
@@ -90,7 +150,11 @@ export default function App() {
   }
 
   return <div className="app-shell">
-    <Sidebar onNewChat={handleNewChat} />
+    <Sidebar
+      onNewChat={handleNewChat}
+      onSelectConversation={handleSelectConversation}
+      activeConversationId={activeConversationId}
+    />
     <main className="chat-panel">
       <header className="topbar">
         <button type="button" className="mobile-brand" aria-label="MedChat navigation"><Icon name="bot" /></button>

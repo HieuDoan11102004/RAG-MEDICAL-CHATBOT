@@ -18,6 +18,7 @@ from flask import Flask, Response, g, jsonify, request
 # Use /tmp for Vercel serverless compatibility (ephemeral filesystem)
 # In production with multiple instances, consider Turso or D1 instead
 AUTH_DB_PATH = Path("/tmp/auth.db")
+CONV_DB_PATH = Path("/tmp/conversations.db")
 
 
 def get_db() -> sqlite3.Connection:
@@ -26,6 +27,34 @@ def get_db() -> sqlite3.Connection:
     conn = sqlite3.connect(str(AUTH_DB_PATH), detect_types=sqlite3.PARSE_DECLTYPES)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def get_conv_db() -> sqlite3.Connection:
+    """Get or create conversation database connection."""
+    CONV_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(CONV_DB_PATH), detect_types=sqlite3.PARSE_DECLTYPES)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_conv_db() -> None:
+    """Initialize the conversation database."""
+    conn = get_conv_db()
+    try:
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS conversations (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                messages TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id);
+        """)
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def init_db() -> None:
@@ -551,6 +580,225 @@ def create_auth_blueprint(base_url: str = "/api/auth") -> tuple[Flask, list[tupl
 
         return handler()
 
+    def list_conversations():
+        """List all conversations for the current user."""
+        token = request.cookies.get("better-auth.session_token")
+        if not token:
+            token = request.headers.get("Authorization", "").replace("Bearer ", "")
+
+        if not token:
+            return jsonify({
+                "type": "error",
+                "code": "UNAUTHORIZED",
+                "message": "Not authenticated"
+            }), 401
+
+        session_data = get_session_from_token(token)
+        if not session_data:
+            return jsonify({
+                "type": "error",
+                "code": "SESSION_EXPIRED",
+                "message": "Session expired or invalid"
+            }), 401
+
+        conn = get_conv_db()
+        try:
+            conversations = conn.execute(
+                """
+                SELECT id, title, created_at, updated_at
+                FROM conversations
+                WHERE user_id = ?
+                ORDER BY updated_at DESC
+                """,
+                (session_data["user"]["id"],)
+            ).fetchall()
+
+            return jsonify({
+                "conversations": [
+                    {
+                        "id": c["id"],
+                        "title": c["title"],
+                        "created_at": c["created_at"].isoformat() if c["created_at"] else None,
+                        "updated_at": c["updated_at"].isoformat() if c["updated_at"] else None,
+                    }
+                    for c in conversations
+                ]
+            })
+        finally:
+            conn.close()
+
+    def get_conversation():
+        """Get a specific conversation with all messages."""
+        token = request.cookies.get("better-auth.session_token")
+        if not token:
+            token = request.headers.get("Authorization", "").replace("Bearer ", "")
+
+        if not token:
+            return jsonify({
+                "type": "error",
+                "code": "UNAUTHORIZED",
+                "message": "Not authenticated"
+            }), 401
+
+        session_data = get_session_from_token(token)
+        if not session_data:
+            return jsonify({
+                "type": "error",
+                "code": "SESSION_EXPIRED",
+                "message": "Session expired or invalid"
+            }), 401
+
+        conv_id = request.args.get("id")
+        if not conv_id:
+            return jsonify({
+                "type": "error",
+                "code": "INVALID_REQUEST",
+                "message": "Conversation ID required"
+            }), 400
+
+        conn = get_conv_db()
+        try:
+            conv = conn.execute(
+                "SELECT * FROM conversations WHERE id = ? AND user_id = ?",
+                (conv_id, session_data["user"]["id"])
+            ).fetchone()
+
+            if not conv:
+                return jsonify({
+                    "type": "error",
+                    "code": "NOT_FOUND",
+                    "message": "Conversation not found"
+                }), 404
+
+            import json
+            messages = json.loads(conv["messages"]) if conv["messages"] else []
+
+            return jsonify({
+                "id": conv["id"],
+                "title": conv["title"],
+                "messages": messages,
+                "created_at": conv["created_at"].isoformat() if conv["created_at"] else None,
+                "updated_at": conv["updated_at"].isoformat() if conv["updated_at"] else None,
+            })
+        finally:
+            conn.close()
+
+    def save_conversation():
+        """Save or update a conversation."""
+        token = request.cookies.get("better-auth.session_token")
+        if not token:
+            token = request.headers.get("Authorization", "").replace("Bearer ", "")
+
+        if not token:
+            return jsonify({
+                "type": "error",
+                "code": "UNAUTHORIZED",
+                "message": "Not authenticated"
+            }), 401
+
+        session_data = get_session_from_token(token)
+        if not session_data:
+            return jsonify({
+                "type": "error",
+                "code": "SESSION_EXPIRED",
+                "message": "Session expired or invalid"
+            }), 401
+
+        body = request.get_json() or {}
+        conv_id = body.get("id")
+        title = body.get("title", "")
+        messages = body.get("messages", [])
+
+        if not title:
+            # Use first user message as title
+            for msg in messages:
+                if msg.get("role") == "user":
+                    title = msg.get("content", "")[:50]
+                    break
+            if not title:
+                title = "New conversation"
+
+        conn = get_conv_db()
+        try:
+            now = datetime.now(timezone.utc)
+
+            if conv_id:
+                # Update existing
+                import json
+                conn.execute(
+                    """
+                    UPDATE conversations
+                    SET title = ?, messages = ?, updated_at = ?
+                    WHERE id = ? AND user_id = ?
+                    """,
+                    (title, json.dumps(messages), now, conv_id, session_data["user"]["id"])
+                )
+            else:
+                # Create new
+                conv_id = generate_id("c_")
+                import json
+                conn.execute(
+                    """
+                    INSERT INTO conversations (id, user_id, title, messages, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (conv_id, session_data["user"]["id"], title, json.dumps(messages), now, now)
+                )
+
+            conn.commit()
+
+            return jsonify({
+                "id": conv_id,
+                "title": title,
+            })
+        finally:
+            conn.close()
+
+    def delete_conversation():
+        """Delete a conversation."""
+        token = request.cookies.get("better-auth.session_token")
+        if not token:
+            token = request.headers.get("Authorization", "").replace("Bearer ", "")
+
+        if not token:
+            return jsonify({
+                "type": "error",
+                "code": "UNAUTHORIZED",
+                "message": "Not authenticated"
+            }), 401
+
+        session_data = get_session_from_token(token)
+        if not session_data:
+            return jsonify({
+                "type": "error",
+                "code": "SESSION_EXPIRED",
+                "message": "Session expired or invalid"
+            }), 401
+
+        body = request.get_json() or {}
+        conv_id = body.get("id")
+
+        if not conv_id:
+            return jsonify({
+                "type": "error",
+                "code": "INVALID_REQUEST",
+                "message": "Conversation ID required"
+            }), 400
+
+        conn = get_conv_db()
+        try:
+            conn.execute(
+                "DELETE FROM conversations WHERE id = ? AND user_id = ?",
+                (conv_id, session_data["user"]["id"])
+            )
+            conn.commit()
+            return jsonify({"status": True})
+        finally:
+            conn.close()
+
+    # Initialize conversation DB
+    init_conv_db()
+
     # Return route handlers
     return None, [
         ("POST", f"{base_url}/sign-up/email", sign_up_email),
@@ -561,4 +809,9 @@ def create_auth_blueprint(base_url: str = "/api/auth") -> tuple[Flask, list[tupl
         ("POST", f"{base_url}/session/revoke", revoke_session),
         ("DELETE", f"{base_url}/account", delete_user),
         ("POST", f"{base_url}/change-password", change_password),
+        # Conversation endpoints
+        ("GET", f"{base_url}/conversations", list_conversations),
+        ("GET", f"{base_url}/conversation", get_conversation),
+        ("POST", f"{base_url}/conversation", save_conversation),
+        ("DELETE", f"{base_url}/conversation", delete_conversation),
     ]
