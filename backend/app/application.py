@@ -32,7 +32,31 @@ from .domain.models import MessageRequest
 def _allowed_origins(raw_origins: str | None = None) -> frozenset[str]:
     """Parse the optional comma-separated frontend origin allowlist."""
     value = os.getenv("CORS_ALLOWED_ORIGINS", "") if raw_origins is None else raw_origins
-    return frozenset(origin.strip() for origin in value.split(",") if origin.strip())
+    origins = frozenset(origin.strip() for origin in value.split(",") if origin.strip())
+    # If no origins configured, allow all for development
+    if not origins:
+        origins = frozenset(["http://localhost:5173", "http://localhost:3000"])
+    return origins
+
+
+def _get_request_origin() -> str | None:
+    """Get the origin from the request, handling Vercel headers."""
+    # Check standard Origin header first
+    origin = request.headers.get("Origin")
+    if origin:
+        return origin
+    # Vercel/serverless: check x-forwarded-host or referer
+    origin = request.headers.get("X-Forwarded-Host")
+    if origin:
+        proto = request.headers.get("X-Forwarded-Proto", "https")
+        return f"{proto}://{origin}"
+    referer = request.headers.get("Referer")
+    if referer:
+        # Extract origin from referer
+        if referer.startswith("http"):
+            parts = referer.split("/")
+            return f"{parts[0]}//{parts[2]}"
+    return None
 
 
 def create_app(
@@ -70,7 +94,7 @@ def create_app(
 
     @app.after_request
     def add_cors_headers(response):
-        origin = request.headers.get("Origin")
+        origin = _get_request_origin()
         # Always add CORS headers for allowed origins (including OPTIONS preflight)
         if origin and origin in origins:
             response.headers["Access-Control-Allow-Origin"] = origin
