@@ -93,6 +93,24 @@ CORS_ALLOWED_ORIGINS=https://chat.example.com,http://localhost:5173
 | `POST /api/chat` | `{ "prompt": "medical question" }` | `{ "answer": "...", "citations": [{ "id": "source-1", "title": "...", "page": 12 }] }` |
 | `POST /api/messages` | `{ "prompt": "medical question" }` | The cited answer plus `warnings` and `processing.route` from the orchestrator. |
 
+### Authentication Endpoints
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `POST /api/auth/sign-up/email` | POST | Create account with email/password |
+| `POST /api/auth/sign-in/email` | POST | Sign in with email/password |
+| `POST /api/auth/sign-out` | POST | Sign out current session |
+| `GET /api/auth/session` | GET | Get current session info |
+
+### Conversation Endpoints (requires auth)
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `GET /api/auth/conversations` | GET | List all user conversations |
+| `GET /api/auth/conversation?id=X` | GET | Get conversation with messages |
+| `POST /api/auth/conversation` | POST | Save/update conversation |
+| `DELETE /api/auth/conversation` | DELETE | Delete a conversation |
+
 `POST /api/chat` returns `400` with `{ "error": "..." }` for blank or invalid prompts and `500` with the same error shape when the RAG pipeline cannot complete a request. A claim is returned only when it has at least one citation to a retrieved passage; otherwise the assistant abstains. The top-level `citations` array is deduplicated and rendered once after the answer. The browser retains chat history for its current session; the API is stateless.
 
 `POST /api/messages` is the versioned multi-agent entry point. In this initial text-only phase it validates prompts up to 4,000 characters, uses the structured LLM router to select immediate-care escalation when appropriate, and otherwise delegates to the citation-grounded RAG agent. It also accepts optional `conversation_id`, `user_id`, and `email` fields; invalid email addresses are rejected. `/api/chat` remains compatible with the original response shape.
@@ -152,13 +170,26 @@ docker run --rm -p 8080:80 rag-medical-frontend
 ```text
 backend/
   app/                    Flask API and RAG pipeline
+    auth.py               Authentication (better-auth compatible)
+    api/                  Request schemas
+    agents/               LangGraph orchestrator and RAG agent
+    domain/               Data models
   config.yaml             Non-secret backend defaults
   data/                   Source PDF documents
   vectorstore/db_faiss/   Derived FAISS index
   tests/                  Backend tests
   Dockerfile              Backend image
 frontend/
-  src/                    React UI, components, and API client
+  src/
+    api/                  API clients (chat.ts, conversations.ts)
+    components/           React components (Sidebar, MessageList, etc.)
+    hooks/                Custom hooks (useAuth.ts)
   Dockerfile              Static frontend image
 README.md                 Project documentation
 ```
+
+## Authentication & Conversations
+
+Users can sign up/sign in to save conversations. Sessions use HTTP-only cookies with `sameSite=none; secure` for cross-origin support. Conversations are stored in SQLite (`/tmp/conversations.db` on Vercel) and auto-save 1 second after sending a message.
+
+> Note: SQLite on Vercel is ephemeral (~10 min per container). For production, consider Turso or Vercel Postgres.
