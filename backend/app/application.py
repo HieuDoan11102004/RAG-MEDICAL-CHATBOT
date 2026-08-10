@@ -94,14 +94,29 @@ def create_app(
 
     @app.after_request
     def add_cors_headers(response):
+        import logging
+        logger = logging.getLogger(__name__)
+
         origin = _get_request_origin()
-        # Always add CORS headers for allowed origins (including OPTIONS preflight)
-        if origin and origin in origins:
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Vary"] = "Origin"
+        logger.info(f"CORS - Request Origin: {origin}, Allowed Origins: {origins}")
+
+        # Always add CORS headers when origin is detected (even if not in allowed list)
+        if origin:
+            if origin in origins:
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+                response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Vary"] = "Origin"
+                logger.info(f"CORS - Allowed: {origin}")
+            else:
+                logger.warning(f"CORS - Origin not in allowed list: {origin}")
+                # Still add headers for debugging
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+                response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Vary"] = "Origin"
         return response
 
     @app.get("/api/health")
