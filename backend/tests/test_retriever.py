@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from langchain_core.documents import Document
 
-from app.agents.rag_agent.components.retriever import Citation, _ABSTENTION, _validated_response, answer_question
+from app.agents.rag_agent.components.retriever import Citation, _abstention_response, _validated_response, answer_question
 
 
 class CitationValidationTests(unittest.TestCase):
@@ -99,7 +99,7 @@ class CitationValidationTests(unittest.TestCase):
 
     def test_unknown_or_missing_citations_abstain(self) -> None:
         citations = []
-        expected = {"answer": _ABSTENTION, "citations": []}
+        expected = _abstention_response()
         self.assertEqual(_validated_response({"answer": "Advice", "citation_ids": ["source-1"]}, citations), expected)
         self.assertEqual(_validated_response({"answer": "Advice", "citation_ids": []}, citations), expected)
 
@@ -117,4 +117,4 @@ class CitationValidationTests(unittest.TestCase):
     def test_no_retrieved_evidence_abstains_without_loading_the_llm(self, load_store) -> None:
         load_store.return_value.similarity_search.return_value = []
 
-        self.assertEqual(answer_question("Question"), {"answer": _ABSTENTION, "citations": []})
+        self.assertEqual(answer_question("Question"), _abstention_response())

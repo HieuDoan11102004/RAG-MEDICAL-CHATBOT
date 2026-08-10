@@ -252,15 +252,14 @@ class OrchestratorTests(unittest.TestCase):
 
         state = orchestrator.get_state("stateful-conversation")
 
-        self.assertEqual(
-            [message.content for message in state["messages"]],
-            [
-                "What is dehydration?",
-                "Cited: What is dehydration?",
-                "What are the symptoms?",
-                "Cited: What are the symptoms?",
-            ],
-        )
+        # Second message now includes conversation context for retrieval
+        messages = [message.content for message in state["messages"]]
+        self.assertEqual(messages[0], "What is dehydration?")
+        self.assertEqual(messages[1], "Cited: What is dehydration?")
+        self.assertEqual(messages[2], "What are the symptoms?")
+        # Third message includes context
+        self.assertIn("Previous conversation:", messages[3])
+        self.assertIn("What is dehydration?", messages[3])
         self.assertEqual(state["dialog_state"], ["primary_assistant"])
         self.assertEqual(state["agent_states"]["rag_agent"]["status"], "complete")
 

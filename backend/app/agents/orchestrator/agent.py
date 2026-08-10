@@ -215,7 +215,22 @@ class Orchestrator:
         return normalized[:64] or None
 
     def _run_rag_agent(self, state: AgenticState) -> dict[str, object]:
-        rag_result = self._rag_agent.run(str(state["messages"][-1].content))
+        # Build conversation context from recent messages for better retrieval
+        messages = state["messages"]
+        recent_user_messages = []
+        for msg in messages[:-1]:  # Exclude current message
+            if hasattr(msg, "type") and msg.type == "human":
+                recent_user_messages.append(msg.content)
+        
+        # Prepend recent context if available (helps with pronoun resolution like "nó")
+        current_question = str(state["messages"][-1].content)
+        if recent_user_messages:
+            context = f"Previous conversation:\n" + "\n".join(f"- {m}" for m in recent_user_messages[-3:])
+            retrieval_question = f"{context}\n\nCurrent question: {current_question}"
+        else:
+            retrieval_question = current_question
+        
+        rag_result = self._rag_agent.run(retrieval_question)
         pop_update = pop_dialog_state(state)
         response = MessageResponse(
             answer=rag_result.answer,
@@ -246,8 +261,18 @@ class Orchestrator:
         }
 
     @staticmethod
-    def _clarification(_state: AgenticState) -> dict[str, object]:
-        answer = "Could you share a little more about the health topic you would like to ask about?"
+    def _clarification(state: AgenticState) -> dict[str, object]:
+        # Detect user's language from the last message
+        user_message = str(state["messages"][-1].content) if state["messages"] else ""
+        vietnamese_chars = set("ạăắằẳẵặâấầẩẫậđêếềểễệơớờởỡợôốồổỗộưứừửữựảẳẩẫẻỉĩịủũụỉỏọổộứừửẳ")
+        vietnamese_words = ["là", "của", "và", "có", "không", "tôi", "bạn", "nên", "thế", "nào", "gì", "tôi bị", "làm gì", "như thế"]
+        has_vietnamese = any(c in user_message.lower() for c in vietnamese_chars) or any(f" {w} " in f" {user_message.lower()} " for w in vietnamese_words)
+        
+        if has_vietnamese:
+            answer = "Bạn có thể cho tôi biết thêm về chủ đề sức khỏe bạn muốn hỏi không?"
+        else:
+            answer = "Could you share a little more about the health topic you would like to ask about?"
+        
         response = MessageResponse(
             answer=answer,
             citations=[],

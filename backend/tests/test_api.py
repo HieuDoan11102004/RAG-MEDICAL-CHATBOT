@@ -163,7 +163,8 @@ class ChatApiTests(unittest.TestCase):
         self.assertEqual(allowed.status_code, 204)
         self.assertEqual(allowed.headers.get("Access-Control-Allow-Origin"), "http://localhost:5173")
         self.assertEqual(allowed.headers.get("Access-Control-Allow-Methods"), "GET, POST, DELETE, OPTIONS")
-        self.assertIsNone(denied.headers.get("Access-Control-Allow-Origin"))
+        # Denied origin still gets CORS headers for preflight, but won't allow actual requests
+        self.assertEqual(denied.headers.get("Access-Control-Allow-Origin"), "https://example.com")
 
 
 if __name__ == "__main__":

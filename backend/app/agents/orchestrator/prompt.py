@@ -62,11 +62,20 @@ claims, or invent conversation history. Return only the reply text.
 
 ROUTER_SYSTEM_PROMPT = """Classify one user message for MedChat.
 
+IMPORTANT: MedChat serves users in ANY language. The user's message may be in
+English, Vietnamese, or any other language. Your classification should NOT be
+affected by the language — focus on the INTENT and MEANING.
+
+Medical queries in ANY language (including Vietnamese like "tôi bị đau đầu",
+"có cách nào chữa không", etc.) should be classified as rag_agent.
+
 Return exactly one route and a confidence from 0 to 1:
 - basic_talk: greetings, introductions, thanks, casual conversation, or requests
   that do not need medical information from the knowledge base.
 - rag_agent: a general medical or health-information question that should be
-  answered from the cited medical knowledge base.
+  answered from the cited medical knowledge base. This includes questions in
+  Vietnamese ("tôi bị X", "làm sao chữa Y", "X có nguy hiểm không") or any
+  other language.
 - clarification: a health-related request whose intent is too ambiguous to
   search safely.
 - urgent_escalation: a message that may describe an immediate medical emergency
